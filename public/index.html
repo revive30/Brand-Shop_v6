@@ -171,6 +171,14 @@ select option{background:var(--surface2)}
 .action-row{padding:0 24px 28px;display:flex;gap:10px}
 .act-btn{flex:1;padding:12px;font-size:13px;font-weight:600;border-radius:var(--r2);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s}
 .act-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--blue)}
+
+/* Image modal */
+.img-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;cursor:zoom-out}
+.img-modal.open{display:flex}
+.img-modal img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:var(--r);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.img-modal-close{position:absolute;top:20px;right:24px;color:#fff;font-size:28px;cursor:pointer;opacity:.7;transition:opacity .15s;line-height:1}
+.img-modal-close:hover{opacity:1}
+.canvas-img{cursor:zoom-in}
 </style>
 </head>
 <body>
@@ -243,7 +251,7 @@ select option{background:var(--surface2)}
           <div class="loading-msg" id="loadMsg">이미지 분석 중</div>
           <div class="loading-sub" id="loadSub">잠시만 기다려주세요</div>
         </div>
-        <img id="canvasImg" class="canvas-img" style="display:none" alt="시안"/>
+        <img id="canvasImg" class="canvas-img" style="display:none" alt="시안" onclick="openModal()"/>
         <div class="mk-layer" id="mkLayer"></div>
       </div>
 
@@ -500,7 +508,27 @@ function resetView(){
   $('canvasEmpty').style.display=file?'none':'flex';
 }
 
+
+function openModal(){
+  const src=$('canvasImg').src;
+  if(!src||src===window.location.href)return;
+  $('modalImg').src=src;
+  $('imgModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  $('imgModal').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
 init();
 </script>
+
+<!-- Image modal -->
+<div class="img-modal" id="imgModal" onclick="closeModal()">
+  <span class="img-modal-close" onclick="closeModal()">✕</span>
+  <img id="modalImg" src="" alt="원본 이미지" onclick="event.stopPropagation()"/>
+</div>
 </body>
 </html>
