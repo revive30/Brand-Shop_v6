@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -7,190 +8,165 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0f0f12;
-  --surface:#1a1a20;
-  --surface2:#22222a;
-  --surface3:#2a2a34;
-  --border:rgba(255,255,255,.07);
-  --border2:rgba(255,255,255,.12);
-  --text:#f2f2f4;
-  --text2:#9494a4;
-  --text3:#55556a;
-  --green:#00c17a;
-  --green-dim:rgba(0,193,122,.12);
-  --green-border:rgba(0,193,122,.25);
-  --red:#ff4f4f;
-  --red-dim:rgba(255,79,79,.1);
-  --red-border:rgba(255,79,79,.2);
-  --yellow:#ffaa00;
-  --yellow-dim:rgba(255,170,0,.1);
-  --yellow-border:rgba(255,170,0,.2);
-  --blue:#4d9fff;
-  --blue-dim:rgba(77,159,255,.1);
-  --blue-border:rgba(77,159,255,.2);
+  --bg:#0f0f12;--surface:#1a1a20;--surface2:#22222a;--surface3:#2a2a34;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --text:#f2f2f4;--text2:#9494a4;--text3:#55556a;
+  --green:#00c17a;--green-dim:rgba(0,193,122,.12);--green-border:rgba(0,193,122,.25);
+  --red:#ff4f4f;--red-dim:rgba(255,79,79,.1);--red-border:rgba(255,79,79,.2);
+  --yellow:#ffaa00;--yellow-dim:rgba(255,170,0,.1);--yellow-border:rgba(255,170,0,.2);
+  --blue:#4d9fff;--blue-dim:rgba(77,159,255,.1);--blue-border:rgba(77,159,255,.2);
   --r:14px;--r2:10px;--r3:8px;
 }
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Pretendard',sans-serif;min-height:100vh;font-size:15px;line-height:1.6}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:15px;line-height:1.6}
 
 /* Header */
-header{height:60px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:12px;background:var(--bg);position:sticky;top:0;z-index:50}
-.logo{width:30px;height:30px;border-radius:9px;background:var(--green);display:grid;place-items:center;font-size:14px;flex-shrink:0}
-.header-title{font-size:16px;font-weight:600;letter-spacing:-.01em}
-.header-badge{font-size:11px;padding:3px 9px;border:1px solid var(--green-border);color:var(--green);border-radius:99px;letter-spacing:.02em;font-weight:500}
+header{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:10px;background:var(--bg);position:sticky;top:0;z-index:100}
+.logo{width:28px;height:28px;border-radius:8px;background:var(--green);display:grid;place-items:center;font-size:13px;flex-shrink:0}
+.header-title{font-size:15px;font-weight:600}
+.header-badge{font-size:10px;padding:3px 8px;border:1px solid var(--green-border);color:var(--green);border-radius:99px;font-weight:500}
 
-/* Layout */
-.layout{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 60px)}
-@media(max-width:960px){.layout{grid-template-columns:1fr}}
+/* App layout: sidebar | main */
+.app{display:grid;grid-template-columns:380px 1fr;height:calc(100vh - 56px)}
 
 /* Sidebar */
-.sidebar{border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
-.field-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;display:block}
-input,select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r2);color:var(--text);padding:12px 14px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s,background .15s}
-input:focus,select:focus,textarea:focus{border-color:var(--green);background:var(--surface3)}
+.sidebar{border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px}
+.field-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;display:block}
+input,select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r2);color:var(--text);padding:11px 13px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--green)}
 input::placeholder,textarea::placeholder{color:var(--text3)}
-textarea{min-height:72px;resize:vertical}
-select{cursor:pointer}
+textarea{min-height:64px;resize:vertical}
 select option{background:var(--surface2)}
 
-/* Director selector */
-.director-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.dir-btn{border:1.5px solid var(--border2);border-radius:var(--r2);padding:14px 10px;cursor:pointer;text-align:center;transition:all .15s;background:var(--surface2)}
-.dir-btn:hover{border-color:var(--border2);background:var(--surface3)}
+/* Director */
+.dir-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.dir-btn{border:1.5px solid var(--border2);border-radius:var(--r2);padding:12px 8px;cursor:pointer;text-align:center;transition:all .15s;background:var(--surface2)}
 .dir-btn.active{border-color:var(--green);background:var(--green-dim)}
 .dir-btn.active .dir-letter{color:var(--green)}
-.dir-letter{font-size:22px;font-weight:800;color:var(--text2);margin-bottom:4px;transition:color .15s}
-.dir-name{font-size:13px;font-weight:600;color:var(--text)}
-.dir-sub{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.3}
+.dir-letter{font-size:20px;font-weight:800;color:var(--text2);margin-bottom:3px;transition:color .15s}
+.dir-name{font-size:12px;font-weight:600;color:var(--text)}
+.dir-sub{font-size:10px;color:var(--text3);margin-top:2px}
 
 /* Upload */
-.upload-box{border:1.5px dashed var(--border2);border-radius:var(--r);min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--text3);cursor:pointer;background:var(--surface2);transition:all .15s;overflow:hidden;position:relative}
-.upload-box:hover{border-color:var(--green);background:var(--green-dim);color:var(--green)}
-.upload-box img{max-width:100%;max-height:140px;display:block;border-radius:var(--r2)}
-.upload-icon{font-size:24px;margin-bottom:6px}
-.upload-text{font-size:14px;font-weight:500}
-.upload-sub{font-size:12px;margin-top:3px;opacity:.7}
+.upload-box{border:1.5px dashed var(--border2);border-radius:var(--r);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--text3);cursor:pointer;background:var(--surface2);transition:all .15s;overflow:hidden}
+.upload-box:hover{border-color:var(--green);background:var(--green-dim)}
+.upload-box img{max-width:100%;max-height:130px;display:block;border-radius:var(--r2)}
+.upload-icon{font-size:22px;margin-bottom:5px}
+.upload-text{font-size:13px;font-weight:500}
+.upload-sub{font-size:11px;margin-top:2px;opacity:.7}
 
 /* Spec */
 .spec-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
-.spec-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.spec-row{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;border-bottom:1px solid var(--border);font-size:12px}
 .spec-row:last-child{border-bottom:none}
 .spec-key{color:var(--text2);font-weight:500}
 .ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--yellow)}
 
-/* Run button */
-.run-btn{width:100%;padding:15px;background:var(--green);border:none;border-radius:var(--r);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:-.01em}
+.run-btn{width:100%;padding:14px;background:var(--green);border:none;border-radius:var(--r);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s}
 .run-btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
 .run-btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
-.run-btn.loading{background:var(--surface3);color:var(--text2)}
 
-/* Main content area */
-.content{overflow-y:auto;background:var(--bg)}
+/* Main = fixed top pane + scrollable bottom pane */
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
 
-/* Empty state */
-.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text3);padding:4rem;text-align:center}
-.empty-icon{font-size:40px;opacity:.2}
-.empty-title{font-size:18px;font-weight:600;color:var(--text2)}
-.empty-desc{font-size:14px;line-height:1.7}
+/* TOP PANE: image(fixed) + comment panel(fixed) */
+.top-pane{display:grid;grid-template-columns:1fr 300px;flex-shrink:0;border-bottom:1px solid var(--border);height:420px}
 
-/* Loading */
-.loading-view{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;display:none}
-.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .9s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-title{font-size:17px;font-weight:600;color:var(--text)}
-.loading-sub{font-size:14px;color:var(--text3)}
-
-/* Result */
-.result-view{display:none;flex-direction:column;gap:0}
-
-/* Image section */
-.image-section{position:relative;background:#000;border-bottom:1px solid var(--border)}
-.result-img{display:block;width:100%;max-height:500px;object-fit:contain}
-.marker-overlay{position:absolute;inset:0;pointer-events:none}
+/* Image canvas */
+.img-canvas{position:relative;background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.canvas-img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+.mk-layer{position:absolute;inset:0;pointer-events:none}
 .mk{position:absolute;transform:translate(-50%,-50%);pointer-events:all;cursor:pointer;z-index:5}
-.mk-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;border:2.5px solid rgba(255,255,255,.5);transition:all .15s;box-shadow:0 2px 12px rgba(0,0,0,.6)}
-.mk:hover .mk-dot,.mk.on .mk-dot{transform:scale(1.25);box-shadow:0 0 0 5px rgba(255,255,255,.15),0 4px 14px rgba(0,0,0,.6)}
+.mk-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;border:2.5px solid rgba(255,255,255,.5);transition:all .15s;box-shadow:0 2px 10px rgba(0,0,0,.6)}
+.mk:hover .mk-dot,.mk.on .mk-dot{transform:scale(1.2);box-shadow:0 0 0 5px rgba(255,255,255,.15),0 4px 14px rgba(0,0,0,.6)}
 .mk-ring{position:absolute;inset:-5px;border-radius:50%;animation:ring 2.5s infinite}
-.mk-critical .mk-dot{background:var(--red)}
-.mk-critical .mk-ring{background:rgba(255,79,79,.25)}
-.mk-warning .mk-dot{background:var(--yellow)}
-.mk-warning .mk-ring{background:rgba(255,170,0,.25)}
-.mk-info .mk-dot{background:var(--blue)}
-.mk-info .mk-ring{background:rgba(77,159,255,.25)}
+.mk-critical .mk-dot{background:var(--red)}.mk-critical .mk-ring{background:rgba(255,79,79,.25)}
+.mk-warning .mk-dot{background:var(--yellow)}.mk-warning .mk-ring{background:rgba(255,170,0,.25)}
+.mk-info .mk-dot{background:var(--blue)}.mk-info .mk-ring{background:rgba(77,159,255,.25)}
 @keyframes ring{0%,100%{opacity:1;transform:scale(1)}60%{opacity:0;transform:scale(2)}}
 
-/* Verdict bar */
-.verdict-section{padding:28px 32px;border-bottom:1px solid var(--border)}
-.verdict-row{display:flex;align-items:center;gap:16px}
-.verdict-pill{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;border:1px solid transparent}
+/* Empty/loading in image area */
+.canvas-empty{color:var(--text3);text-align:center;padding:2rem;font-size:13px;line-height:1.7}
+.canvas-loading{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--text3)}
+.spinner{width:36px;height:36px;border:2.5px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-size:14px;color:var(--text2)}
+.loading-sub{font-size:12px;color:var(--text3)}
+
+/* Comment panel */
+.comment-panel{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+.cp-head{padding:13px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.04em;flex-shrink:0}
+.cp-list{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;flex:1}
+.cp-item{border-radius:var(--r2);padding:12px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);transition:all .15s}
+.cp-item:hover{border-color:var(--border2)}
+.cp-item.on-critical{border-color:var(--red);background:var(--red-dim)}
+.cp-item.on-warning{border-color:var(--yellow);background:var(--yellow-dim)}
+.cp-item.on-info{border-color:var(--blue);background:var(--blue-dim)}
+.cp-item-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.cp-badge{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
+.cb-critical{background:var(--red)}.cb-warning{background:var(--yellow)}.cb-info{background:var(--blue)}
+.cp-label{font-size:13px;font-weight:600}
+.cp-text{font-size:12px;color:var(--text2);line-height:1.55}
+.cp-empty{padding:2rem;text-align:center;color:var(--text3);font-size:12px;line-height:1.7}
+
+/* BOTTOM PANE: scrollable */
+.bottom-pane{flex:1;overflow-y:auto}
+
+/* Verdict */
+.verdict-sec{padding:22px 28px;border-bottom:1px solid var(--border)}
+.verdict-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.v-pill{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:99px;border:1px solid transparent}
 .vp-danger{background:var(--red-dim);border-color:var(--red-border);color:var(--red)}
 .vp-warn{background:var(--yellow-dim);border-color:var(--yellow-border);color:var(--yellow)}
 .vp-caution{background:var(--blue-dim);border-color:var(--blue-border);color:var(--blue)}
 .vp-ok{background:var(--green-dim);border-color:var(--green-border);color:var(--green)}
-.vp-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
-.vp-text{font-size:14px;font-weight:700}
-.verdict-dir{font-size:13px;color:var(--text3);margin-left:4px}
-.summary-list{margin-top:16px;display:flex;flex-direction:column;gap:8px}
-.sum-item{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--text2);line-height:1.6}
-.sum-dot{width:6px;height:6px;border-radius:50%;background:var(--yellow);flex-shrink:0;margin-top:8px}
-
-/* Marker comments */
-.markers-section{padding:24px 32px;border-bottom:1px solid var(--border)}
-.section-title{font-size:13px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px}
-.marker-cards{display:flex;flex-direction:column;gap:10px}
-.mk-card{border-radius:var(--r2);border:1px solid var(--border);background:var(--surface);padding:16px 18px;cursor:pointer;transition:all .15s}
-.mk-card:hover{border-color:var(--border2);background:var(--surface2)}
-.mk-card.on-critical{border-color:var(--red);background:var(--red-dim)}
-.mk-card.on-warning{border-color:var(--yellow);background:var(--yellow-dim)}
-.mk-card.on-info{border-color:var(--blue);background:var(--blue-dim)}
-.mk-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.mk-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
-.mb-critical{background:var(--red)}.mb-warning{background:var(--yellow)}.mb-info{background:var(--blue)}
-.mk-card-label{font-size:15px;font-weight:600}
-.mk-card-text{font-size:14px;color:var(--text2);line-height:1.65}
+.v-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.v-text{font-size:14px;font-weight:700}
+.v-dir{font-size:13px;color:var(--text3)}
+.sum-list{display:flex;flex-direction:column;gap:7px}
+.sum-item{display:flex;gap:9px;align-items:flex-start;font-size:14px;color:var(--text2);line-height:1.6}
+.sum-dot{width:5px;height:5px;border-radius:50%;background:var(--yellow);flex-shrink:0;margin-top:9px}
 
 /* Sections */
-.sections-area{padding:24px 32px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:12px}
-.sec-card{border-radius:var(--r);border:1px solid var(--border);background:var(--surface);overflow:hidden;transition:border-color .15s}
-.sec-card:hover{border-color:var(--border2)}
-.sec-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;cursor:pointer}
-.sec-head-left{display:flex;align-items:center;gap:12px}
-.sec-icon{font-size:18px}
-.sec-name{font-size:15px;font-weight:600}
-.sec-cause{font-size:12px;color:var(--text3);margin-top:2px}
-.sec-right{display:flex;align-items:center;gap:8px}
-.sec-pill{font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px}
+.sections-sec{padding:20px 28px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
+.sec-card{border-radius:var(--r);border:1px solid var(--border);background:var(--surface);overflow:hidden}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;transition:background .12s}
+.sec-head:hover{background:rgba(255,255,255,.02)}
+.sec-left{display:flex;align-items:center;gap:10px}
+.sec-icon{font-size:16px}
+.sec-name{font-size:14px;font-weight:600}
+.sec-cause{font-size:11px;color:var(--text3);margin-top:2px}
+.sec-right{display:flex;align-items:center;gap:7px}
+.sec-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px}
 .sp-danger{background:var(--red-dim);color:var(--red)}
 .sp-warn{background:var(--yellow-dim);color:var(--yellow)}
 .sp-caution{background:var(--blue-dim);color:var(--blue)}
 .sp-ok{background:var(--green-dim);color:var(--green)}
-.sec-chevron{color:var(--text3);font-size:16px;transition:transform .2s}
+.sec-chevron{color:var(--text3);font-size:14px;transition:transform .2s}
 .sec-chevron.open{transform:rotate(180deg)}
-.sec-body{border-top:1px solid var(--border);padding:20px;display:flex;flex-direction:column;gap:14px}
+.sec-body{border-top:1px solid var(--border);padding:18px;display:flex;flex-direction:column;gap:12px}
 .sec-body.closed{display:none}
-.detail-block{display:flex;flex-direction:column;gap:4px}
-.detail-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
-.detail-text{font-size:14px;color:var(--text2);line-height:1.65}
-.suggest-block{background:rgba(0,193,122,.07);border-left:3px solid var(--green);padding:12px 16px;border-radius:0 var(--r3) var(--r3) 0;font-size:14px;color:var(--text);line-height:1.65}
-.mk-refs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.mk-ref-btn{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;cursor:pointer;transition:transform .15s}
-.mk-ref-btn:hover{transform:scale(1.2)}
+.d-block{display:flex;flex-direction:column;gap:3px}
+.d-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.d-text{font-size:13px;color:var(--text2);line-height:1.65}
+.d-suggest{background:rgba(0,193,122,.07);border-left:3px solid var(--green);padding:10px 14px;border-radius:0 var(--r3) var(--r3) 0;font-size:13px;color:var(--text);line-height:1.65}
+.mk-refs{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.mk-ref{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;cursor:pointer;transition:transform .15s}
+.mk-ref:hover{transform:scale(1.2)}
 .mr-c{background:var(--red)}.mr-w{background:var(--yellow)}.mr-i{background:var(--blue)}
 
-/* Bottom */
-.bottom-area{padding:24px 32px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.bottom-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
-.bottom-card-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
-.prio-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;color:var(--text2);line-height:1.5}
+/* Bottom cards */
+.bottom-cards{padding:20px 28px 28px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.b-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.b-card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.prio-item{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.5}
 .prio-item:last-child{border-bottom:none}
-.prio-num{font-size:10px;font-weight:800;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.pn1{background:var(--red-dim);color:var(--red)}
-.pn2{background:var(--yellow-dim);color:var(--yellow)}
-.pn3{background:var(--blue-dim);color:var(--blue)}
-.final-text{font-size:14px;color:var(--text2);line-height:1.75}
+.prio-num{font-size:9px;font-weight:800;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.pn1{background:var(--red-dim);color:var(--red)}.pn2{background:var(--yellow-dim);color:var(--yellow)}.pn3{background:var(--blue-dim);color:var(--blue)}
+.final-text{font-size:13px;color:var(--text2);line-height:1.75}
 
-.action-row{padding:20px 32px 32px;display:flex;gap:10px}
-.action-btn{flex:1;padding:13px;font-size:14px;font-weight:600;border-radius:var(--r2);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s}
-.action-btn:hover{background:var(--surface2);color:var(--text)}
+.action-row{padding:0 28px 24px;display:flex;gap:9px}
+.act-btn{flex:1;padding:12px;font-size:13px;font-weight:600;border-radius:var(--r2);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s}
+.act-btn:hover{background:var(--surface2);color:var(--text)}
 </style>
 </head>
 <body>
@@ -198,118 +174,91 @@ select option{background:var(--surface2)}
 <header>
   <div class="logo">✦</div>
   <span class="header-title">디자인 사전 검수 에이전트</span>
-  <span class="header-badge">v6</span>
+  <span class="header-badge">v7</span>
 </header>
 
-<div class="layout">
+<div class="app">
 
   <!-- Sidebar -->
   <aside class="sidebar">
-
     <div>
       <span class="field-label">디렉터 타입</span>
-      <div class="director-row">
+      <div class="dir-grid">
         <div class="dir-btn active" data-d="A" onclick="setDir('A')">
-          <div class="dir-letter">A</div>
-          <div class="dir-name">완성도</div>
-          <div class="dir-sub">마감·디테일</div>
+          <div class="dir-letter">A</div><div class="dir-name">완성도</div><div class="dir-sub">마감·디테일</div>
         </div>
         <div class="dir-btn" data-d="B" onclick="setDir('B')">
-          <div class="dir-letter">B</div>
-          <div class="dir-name">브랜드</div>
-          <div class="dir-sub">톤·무드</div>
+          <div class="dir-letter">B</div><div class="dir-name">브랜드</div><div class="dir-sub">톤·무드</div>
         </div>
         <div class="dir-btn" data-d="C" onclick="setDir('C')">
-          <div class="dir-letter">C</div>
-          <div class="dir-name">구조</div>
-          <div class="dir-sub">가독성·위계</div>
+          <div class="dir-letter">C</div><div class="dir-name">구조</div><div class="dir-sub">가독성·위계</div>
         </div>
       </div>
     </div>
-
     <div>
       <span class="field-label">시안 이미지</span>
-      <div class="upload-box" id="upBox" onclick="document.getElementById('fileIn').click()">
-        <div id="upPlaceholder">
-          <div class="upload-icon">🖼</div>
-          <div class="upload-text">클릭 또는 드래그</div>
-          <div class="upload-sub">PNG · JPG · WebP</div>
-        </div>
+      <div class="upload-box" id="upBox" onclick="$('fileIn').click()">
+        <div id="upPlaceholder"><div class="upload-icon">🖼</div><div class="upload-text">클릭 또는 드래그</div><div class="upload-sub">PNG · JPG · WebP</div></div>
         <img id="upPreview" style="display:none" alt="미리보기"/>
       </div>
       <input id="fileIn" type="file" accept="image/png,image/jpeg,image/webp" style="display:none"/>
     </div>
-
     <div>
       <span class="field-label">배너 종류</span>
       <select id="bannerType"><option value="">선택하세요</option></select>
     </div>
-
     <div><span class="field-label">브랜드명</span><input id="brandName" placeholder="예: Galaxy S26, Volvo, KFC"/></div>
     <div><span class="field-label">화면 목적</span><input id="purpose" placeholder="예: 이벤트 응모 유도, 혜택 안내"/></div>
     <div><span class="field-label">주요 혜택 / 메시지</span><input id="benefit" placeholder="핵심 혜택 또는 메시지"/></div>
     <div><span class="field-label">CTA</span><input id="cta" placeholder="예: 혜택 보러가기, 응모하기"/></div>
     <div>
-      <span class="field-label">디자이너 메모 <span style="text-transform:none;font-weight:400;font-size:11px">(선택)</span></span>
+      <span class="field-label">메모 <span style="text-transform:none;font-weight:400;font-size:10px">(선택)</span></span>
       <textarea id="memo" placeholder="의도한 부분, 우려되는 부분, 참고사항"></textarea>
     </div>
-
     <div class="spec-card" id="specCard">
       <div class="spec-row"><span class="spec-key">상태</span><span class="warn">이미지와 배너 종류를 선택하세요</span></div>
     </div>
-
     <button class="run-btn" id="runBtn" disabled onclick="startReview()">✦ 검수 시작</button>
-
   </aside>
 
-  <!-- Content -->
-  <main class="content" id="content">
+  <!-- Main -->
+  <div class="main">
 
-    <div class="empty" id="emptyView">
-      <div class="empty-icon">✦</div>
-      <div class="empty-title">검수 대기 중</div>
-      <div class="empty-desc">시안 이미지를 올리고<br>배너 종류를 선택하면<br>이미지 위에 마커가 표시됩니다</div>
-    </div>
+    <!-- TOP PANE: fixed -->
+    <div class="top-pane">
 
-    <div class="loading-view" id="loadingView">
-      <div class="spinner"></div>
-      <div class="loading-title" id="loadTitle">이미지 분석 중</div>
-      <div class="loading-sub" id="loadSub">잠시만 기다려주세요</div>
-    </div>
-
-    <div class="result-view" id="resultView">
-
-      <!-- Image + markers -->
-      <div class="image-section">
-        <img id="resultImg" class="result-img" alt="시안"/>
-        <div class="marker-overlay" id="mkLayer"></div>
+      <!-- Image canvas -->
+      <div class="img-canvas" id="imgCanvas">
+        <div class="canvas-empty" id="canvasEmpty">
+          <div style="font-size:32px;opacity:.2;margin-bottom:10px">✦</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text2);margin-bottom:6px">검수 대기 중</div>
+          <div>시안을 업로드하면<br>이미지가 여기에 표시됩니다</div>
+        </div>
+        <div class="canvas-loading" id="canvasLoading" style="display:none">
+          <div class="spinner"></div>
+          <div class="loading-msg" id="loadMsg">이미지 분석 중</div>
+          <div class="loading-sub" id="loadSub">잠시만 기다려주세요</div>
+        </div>
+        <img id="canvasImg" class="canvas-img" style="display:none" alt="시안"/>
+        <div class="mk-layer" id="mkLayer"></div>
       </div>
 
-      <!-- Verdict -->
-      <div class="verdict-section" id="verdictSec"></div>
-
-      <!-- Marker comments -->
-      <div class="markers-section" id="markersSec" style="display:none">
-        <div class="section-title">📍 마커 코멘트</div>
-        <div class="marker-cards" id="markerCards"></div>
-      </div>
-
-      <!-- Sections -->
-      <div class="sections-area" id="sectionsArea"></div>
-
-      <!-- Bottom -->
-      <div class="bottom-area" id="bottomArea"></div>
-
-      <!-- Actions -->
-      <div class="action-row">
-        <button class="action-btn" onclick="copyRes()">📋 결과 복사</button>
-        <button class="action-btn" onclick="resetView()">↺ 새 검수</button>
+      <!-- Comment panel -->
+      <div class="comment-panel">
+        <div class="cp-head">📍 마커 코멘트</div>
+        <div class="cp-list" id="cpList">
+          <div class="cp-empty">검수 후 마커를 클릭하면<br>코멘트가 표시됩니다</div>
+        </div>
       </div>
 
     </div>
 
-  </main>
+    <!-- BOTTOM PANE: scrollable -->
+    <div class="bottom-pane" id="bottomPane">
+      <!-- filled by JS after review -->
+    </div>
 
+  </div>
 </div>
 
 <script>
@@ -348,7 +297,7 @@ function checkSpec(){
   $('specCard').innerHTML=`
     <div class="spec-row"><span class="spec-key">사이즈</span><span class="${sizeOk?'ok':'bad'}">${imgInfo.w}×${imgInfo.h} / 기준 ${st}</span></div>
     <div class="spec-row"><span class="spec-key">파일 형식</span><span class="${fmtOk?'ok':'bad'}">${file.type.replace('image/','').toUpperCase()}</span></div>
-    <div class="spec-row"><span class="spec-key">용량</span><span class="warn">${kb}KB (검수용 파일 — 참고만)</span></div>
+    <div class="spec-row"><span class="spec-key">용량</span><span class="warn">${kb}KB (검수용 참고)</span></div>
     <div class="spec-row"><span class="spec-key">안전영역</span><span class="warn">${spec.safeArea}</span></div>`;
   $('runBtn').disabled=false;
   return{type,actual:{width:imgInfo.w,height:imgInfo.h,mime:file.type,kb},expected:spec,result:{sizeOk,fmtOk}};
@@ -358,7 +307,7 @@ async function handleFile(f){
   file=f; imgInfo=await getImgInfo(f);
   const url=URL.createObjectURL(f);
   $('upPreview').src=url; $('upPreview').style.display='block'; $('upPlaceholder').style.display='none';
-  $('resultImg').src=url;
+  $('canvasImg').src=url; $('canvasImg').style.display='block'; $('canvasEmpty').style.display='none';
   checkSpec();
 }
 
@@ -368,7 +317,6 @@ $('upBox').addEventListener('drop',e=>{e.preventDefault();$('upBox').style.borde
 $('fileIn').onchange=e=>{if(e.target.files[0])handleFile(e.target.files[0])};
 $('bannerType').onchange=checkSpec;
 
-// Verdict helpers
 function vc(v){if(!v)return'vp-caution';if(v.includes('치명'))return'vp-danger';if(v.includes('수정'))return'vp-warn';if(v.includes('검토'))return'vp-caution';if(v.includes('양호'))return'vp-ok';return'vp-caution'}
 function sc(v){if(!v)return'sp-caution';if(v.includes('치명'))return'sp-danger';if(v.includes('수정'))return'sp-warn';if(v.includes('검토'))return'sp-caution';if(v.includes('양호'))return'sp-ok';return'sp-caution'}
 
@@ -384,60 +332,45 @@ function renderMarkers(markers){
   });
 }
 
-function renderMkCards(markers){
-  const sec=$('markersSec'), cards=$('markerCards');
-  if(!markers?.length){sec.style.display='none';return;}
-  sec.style.display='block';
-  cards.innerHTML=markers.map(m=>`
-    <div class="mk-card" id="mkc-${m.id}" onclick="activateMk(${m.id})">
-      <div class="mk-card-head">
-        <span class="mk-badge mb-${m.severity}">${m.id}</span>
-        <span class="mk-card-label">${m.label}</span>
+function renderCpList(markers){
+  const list=$('cpList');
+  if(!markers?.length){list.innerHTML='<div class="cp-empty">마커가 없습니다</div>';return;}
+  list.innerHTML=markers.map(m=>`
+    <div class="cp-item" id="cp-${m.id}" onclick="activateMk(${m.id})">
+      <div class="cp-item-head">
+        <span class="cp-badge cb-${m.severity}">${m.id}</span>
+        <span class="cp-label">${m.label}</span>
       </div>
-      <div class="mk-card-text">${m.comment}</div>
+      <div class="cp-text">${m.comment}</div>
     </div>`).join('');
 }
 
 function activateMk(id){
   activeId=id;
   document.querySelectorAll('.mk').forEach(el=>el.classList.toggle('on',Number(el.dataset.id)===id));
-  document.querySelectorAll('.mk-card').forEach(el=>{
-    el.classList.remove('on-critical','on-warning','on-info');
-  });
+  document.querySelectorAll('.cp-item').forEach(el=>el.classList.remove('on-critical','on-warning','on-info'));
   const m=parsed?.markers?.find(x=>x.id===id);
-  const card=$('mkc-'+id);
-  if(card){card.classList.add('on-'+(m?.severity||'info'));card.scrollIntoView({behavior:'smooth',block:'nearest'})}
+  const cp=$('cp-'+id);
+  if(cp){cp.classList.add('on-'+(m?.severity||'info'));cp.scrollIntoView({behavior:'smooth',block:'nearest'})}
 }
 
 function toggleSec(id){
   const b=$('sb-'+id),c=$('ch-'+id);
-  b.classList.toggle('closed'); c.classList.toggle('open');
+  b.classList.toggle('closed');c.classList.toggle('open');
 }
 
-function renderResult(p){
-  // Verdict
+function renderBottom(p){
   const vcls=vc(p.verdict);
-  $('verdictSec').innerHTML=`
-    <div class="verdict-row">
-      <div class="verdict-pill ${vcls}"><div class="vp-dot"></div><span class="vp-text">${p.verdict}</span></div>
-      <span class="verdict-dir">${DIR_NAMES[dir]} 기준</span>
-    </div>
-    ${p.summary?.length?`<div class="summary-list">${p.summary.map(s=>`<div class="sum-item"><div class="sum-dot"></div><span>${s}</span></div>`).join('')}</div>`:''}`;
-
-  // Markers
-  renderMarkers(p.markers||[]);
-  renderMkCards(p.markers||[]);
-
-  // Sections
-  $('sectionsArea').innerHTML=(p.sections||[]).map(s=>{
+  const summary=(p.summary||[]).map(s=>`<div class="sum-item"><div class="sum-dot"></div><span>${s}</span></div>`).join('');
+  const sections=(p.sections||[]).map(s=>{
     const refs=(s.markerIds||[]).map(mid=>{
       const m=p.markers?.find(x=>x.id===mid);
-      return `<button class="mk-ref-btn mr-${m?.severity?.[0]||'i'}" onclick="activateMk(${mid})">${mid}</button>`;
+      return `<span class="mk-ref mr-${m?.severity?.[0]||'i'}" onclick="activateMk(${mid})">${mid}</span>`;
     }).join('');
     return `
     <div class="sec-card">
       <div class="sec-head" onclick="toggleSec('${s.id}')">
-        <div class="sec-head-left">
+        <div class="sec-left">
           <span class="sec-icon">${ICONS[s.id]||'•'}</span>
           <div><div class="sec-name">${s.title}</div>${s.cause?`<div class="sec-cause">${s.cause}</div>`:''}</div>
         </div>
@@ -448,29 +381,46 @@ function renderResult(p){
       </div>
       <div class="sec-body" id="sb-${s.id}">
         ${refs?`<div class="mk-refs">${refs}</div>`:''}
-        ${s.problem?`<div class="detail-block"><div class="detail-label">문제</div><div class="detail-text">${s.problem}</div></div>`:''}
-        ${s.reason?`<div class="detail-block"><div class="detail-label">이유</div><div class="detail-text">${s.reason}</div></div>`:''}
-        ${s.suggestion?`<div class="suggest-block">${s.suggestion}</div>`:''}
+        ${s.problem?`<div class="d-block"><div class="d-label">문제</div><div class="d-text">${s.problem}</div></div>`:''}
+        ${s.reason?`<div class="d-block"><div class="d-label">이유</div><div class="d-text">${s.reason}</div></div>`:''}
+        ${s.suggestion?`<div class="d-suggest">${s.suggestion}</div>`:''}
       </div>
     </div>`;
   }).join('');
 
-  // Bottom
   const prios=(p.priorities||[]).map((t,i)=>`<div class="prio-item"><span class="prio-num pn${i+1}">${i+1}</span><span>${t}</span></div>`).join('');
-  $('bottomArea').innerHTML=`
-    ${prios?`<div class="bottom-card"><div class="bottom-card-title">우선 수정 항목</div>${prios}</div>`:'<div></div>'}
-    ${p.finalComment?`<div class="bottom-card"><div class="bottom-card-title">디렉터 전달 전 코멘트</div><div class="final-text">${p.finalComment}</div></div>`:'<div></div>'}`;
+
+  $('bottomPane').innerHTML=`
+    <div class="verdict-sec">
+      <div class="verdict-row">
+        <div class="v-pill ${vcls}"><div class="v-dot"></div><span class="v-text">${p.verdict}</span></div>
+        <span class="v-dir">${DIR_NAMES[dir]} 기준</span>
+      </div>
+      ${summary?`<div class="sum-list">${summary}</div>`:''}
+    </div>
+    <div class="sections-sec">${sections}</div>
+    <div class="bottom-cards">
+      ${prios?`<div class="b-card"><div class="b-card-title">우선 수정 항목</div>${prios}</div>`:'<div></div>'}
+      ${p.finalComment?`<div class="b-card"><div class="b-card-title">디렉터 전달 전 코멘트</div><div class="final-text">${p.finalComment}</div></div>`:'<div></div>'}
+    </div>
+    <div class="action-row">
+      <button class="act-btn" onclick="copyRes()">📋 결과 복사</button>
+      <button class="act-btn" onclick="resetView()">↺ 새 검수</button>
+    </div>`;
 }
 
 async function startReview(){
   const spec=checkSpec(); if(!spec)return;
-  $('emptyView').style.display='none';
-  $('resultView').style.display='none';
-  $('loadingView').style.display='flex';
-  $('runBtn').disabled=true; $('runBtn').textContent='검수 중...'; $('runBtn').classList.add('loading');
+  $('canvasEmpty').style.display='none';
+  $('canvasImg').style.display='none';
+  $('canvasLoading').style.display='flex';
+  $('mkLayer').innerHTML='';
+  $('cpList').innerHTML='<div class="cp-empty">검수 중...</div>';
+  $('bottomPane').innerHTML='';
+  $('runBtn').disabled=true; $('runBtn').textContent='검수 중...';
 
-  let li=0; $('loadTitle').textContent=LOADS[0][0]; $('loadSub').textContent=LOADS[0][1];
-  const timer=setInterval(()=>{li=(li+1)%LOADS.length;$('loadTitle').textContent=LOADS[li][0];$('loadSub').textContent=LOADS[li][1]},2800);
+  let li=0; $('loadMsg').textContent=LOADS[0][0]; $('loadSub').textContent=LOADS[0][1];
+  const timer=setInterval(()=>{li=(li+1)%LOADS.length;$('loadMsg').textContent=LOADS[li][0];$('loadSub').textContent=LOADS[li][1]},2800);
 
   try{
     const b64=await f2b64(file);
@@ -486,31 +436,29 @@ async function startReview(){
 
     lastText=(data.text||'').replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
     parsed=data.parsed;
-    if(!parsed){try{const r=JSON.parse(lastText);if(r?.verdict)parsed=r;}catch(e){try{const m=lastText.match(/\{[\s\S]*\}/);if(m){const r=JSON.parse(m[0]);if(r?.verdict)parsed=r;}}catch(e2){}}}
-
     if(!parsed){
-      const raw=lastText;
-      for(const fn of[()=>JSON.parse(raw),()=>{const m=raw.match(/\{[\s\S]*\}/);return m?JSON.parse(m[0]):null}]){
+      for(const fn of[()=>JSON.parse(lastText),()=>{const m=lastText.match(/\{[\s\S]*\}/);return m?JSON.parse(m[0]):null}]){
         try{const r=fn();if(r?.verdict){parsed=r;break}}catch{}
       }
     }
 
-    $('loadingView').style.display='none';
-    if(parsed){
-      renderResult(parsed);
-      $('resultView').style.display='flex';
-    } else {
-      $('resultView').innerHTML=`<pre style="padding:24px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap">${lastText}</pre>`;
-      $('resultView').style.display='flex';
-    }
+    $('canvasLoading').style.display='none';
+    $('canvasImg').style.display='block';
 
+    if(parsed){
+      renderMarkers(parsed.markers||[]);
+      renderCpList(parsed.markers||[]);
+      renderBottom(parsed);
+    }else{
+      $('bottomPane').innerHTML=`<pre style="padding:24px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap">${lastText}</pre>`;
+    }
   }catch(e){
     clearInterval(timer);
-    $('loadingView').style.display='none';
-    $('emptyView').style.display='flex';
-    $('emptyView').innerHTML=`<div class="empty-icon">⚠️</div><div class="empty-title">오류 발생</div><div class="empty-desc" style="color:var(--red)">${e.message}</div>`;
+    $('canvasLoading').style.display='none';
+    $('canvasImg').style.display='block';
+    $('bottomPane').innerHTML=`<div style="padding:24px;color:var(--red);font-size:14px">오류: ${e.message}</div>`;
   }finally{
-    $('runBtn').disabled=false; $('runBtn').textContent='✦ 검수 시작'; $('runBtn').classList.remove('loading');
+    $('runBtn').disabled=false; $('runBtn').textContent='✦ 검수 시작';
   }
 }
 
@@ -518,9 +466,11 @@ function copyRes(){navigator.clipboard.writeText(lastText).then(()=>{const b=eve
 
 function resetView(){
   parsed=null;lastText='';activeId=null;
-  $('resultView').style.display='none';
-  $('emptyView').style.display='flex';
-  $('emptyView').innerHTML=`<div class="empty-icon">✦</div><div class="empty-title">검수 대기 중</div><div class="empty-desc">시안 이미지를 올리고<br>배너 종류를 선택하면<br>이미지 위에 마커가 표시됩니다</div>`;
+  $('mkLayer').innerHTML='';
+  $('cpList').innerHTML='<div class="cp-empty">검수 후 마커를 클릭하면<br>코멘트가 표시됩니다</div>';
+  $('bottomPane').innerHTML='';
+  $('canvasImg').style.display=file?'block':'none';
+  $('canvasEmpty').style.display=file?'none':'flex';
 }
 
 init();
