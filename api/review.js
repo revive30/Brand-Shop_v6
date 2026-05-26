@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
-  const model = (process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929').trim();
+  const model = (process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5').trim();
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
@@ -88,7 +88,7 @@ All text in Korean.`;
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model,
-        max_tokens: 2500,
+        max_tokens: 4000,
         system: 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble.',
         messages: [{
           role: 'user',
@@ -100,42 +100,41 @@ All text in Korean.`;
       })
     });
 
-    // Anthropic API can return plain text or HTML on gateway/rate-limit/auth failures.
-    // Always read as text first, then parse JSON safely.
-    const responseText = await response.text();
-    let data = null;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      data = null;
+    const data = await response.json();
+    if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || 'API 오류' });
+
+    // stop_reason이 max_tokens면 JSON이 잘린 것
+    if (data.stop_reason === 'max_tokens') {
+      console.warn('[review] max_tokens hit — response truncated');
     }
 
-    if (!response.ok) {
-      const apiMessage = data?.error?.message || data?.message || responseText || `Anthropic API 오류 ${response.status}`;
-      return res.status(response.status).json({
-        error: apiMessage,
-        status: response.status,
-        model_used: model
-      });
-    }
+    const raw = (data?.content || []).map(c => c.type === 'text' ? (c.text || '') : '').join('').trim();
+    // 마크다운 코드펜스 제거 (멀티라인 포함)
+    const cleaned = raw
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```\s*$/i, '')
+      .trim();
 
-    if (!data) {
-      return res.status(502).json({
-        error: 'Anthropic API 응답이 JSON 형식이 아닙니다.',
-        raw: responseText.slice(0, 1000),
-        model_used: model
-      });
-    }
-
-    const raw = data?.content?.map(c => c.text || '').join('').trim();
-    const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
     let parsed = null;
     for (const t of [cleaned, raw]) {
       if (parsed) break;
+      // 1) 직접 파싱
       try { const r = JSON.parse(t); if (r?.verdict) { parsed = r; break; } } catch(e) {}
-      try { const m = t.match(/\{[\s\S]*\}/); if (m) { const r = JSON.parse(m[0]); if (r?.verdict) { parsed = r; } } } catch(e) {}
+      // 2) JSON 블록 추출 후 파싱
+      try {
+        const m = t.match(/\{[\s\S]*\}/);
+        if (m) { const r = JSON.parse(m[0]); if (r?.verdict) { parsed = r; break; } }
+      } catch(e) {}
+      // 3) 이중 인코딩된 경우 (문자열 안에 JSON이 들어있는 경우)
+      try {
+        const r = JSON.parse(JSON.parse(t));
+        if (r?.verdict) { parsed = r; break; }
+      } catch(e) {}
     }
-    return res.status(200).json({ model_used: model, text: cleaned, parsed });
+
+    console.log('[review] stop_reason:', data.stop_reason, '| parsed:', !!parsed, '| raw_len:', raw.length);
+    return res.status(200).json({ model_used: model, stop_reason: data.stop_reason, text: cleaned, parsed });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
