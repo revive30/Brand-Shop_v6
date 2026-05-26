@@ -103,17 +103,15 @@ All text in Korean.`;
     const data = await response.json();
     if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || 'API 오류' });
 
-    const rawText = data?.content?.map(c => c.text || '').join('').trim();
+    const raw = data?.content?.map(c => c.text || '').join('').trim();
+    const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
     let parsed = null;
-    const attempts = [
-      () => JSON.parse(rawText),
-      () => JSON.parse(rawText.replace(/^```json\s*/,'').replace(/\s*```$/,'')),
-      () => { const m = rawText.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; },
-    ];
-    for (const fn of attempts) {
-      try { const r = fn(); if (r && r.verdict) { parsed = r; break; } } catch {}
+    for (const t of [cleaned, raw]) {
+      if (parsed) break;
+      try { const r = JSON.parse(t); if (r?.verdict) { parsed = r; break; } } catch(e) {}
+      try { const m = t.match(/\{[\s\S]*\}/); if (m) { const r = JSON.parse(m[0]); if (r?.verdict) { parsed = r; } } } catch(e) {}
     }
-    return res.status(200).json({ model_used: model, text: rawText, parsed });
+    return res.status(200).json({ model_used: model, text: cleaned, parsed });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
