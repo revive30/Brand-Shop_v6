@@ -88,7 +88,7 @@ All text in Korean.`;
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model,
-        max_tokens: 2500,
+        max_tokens: 4000,
         system: 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble.',
         messages: [{
           role: 'user',
