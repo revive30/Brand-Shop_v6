@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
-  const model = (process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5').trim();
+  const model = (process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929').trim();
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
@@ -88,7 +88,7 @@ All text in Korean.`;
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model,
-        max_tokens: 4000,
+        max_tokens: 2500,
         system: 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble.',
         messages: [{
           role: 'user',
@@ -100,8 +100,32 @@ All text in Korean.`;
       })
     });
 
-    const data = await response.json();
-    if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || 'API 오류' });
+    // Anthropic API can return plain text or HTML on gateway/rate-limit/auth failures.
+    // Always read as text first, then parse JSON safely.
+    const responseText = await response.text();
+    let data = null;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      data = null;
+    }
+
+    if (!response.ok) {
+      const apiMessage = data?.error?.message || data?.message || responseText || `Anthropic API 오류 ${response.status}`;
+      return res.status(response.status).json({
+        error: apiMessage,
+        status: response.status,
+        model_used: model
+      });
+    }
+
+    if (!data) {
+      return res.status(502).json({
+        error: 'Anthropic API 응답이 JSON 형식이 아닙니다.',
+        raw: responseText.slice(0, 1000),
+        model_used: model
+      });
+    }
 
     const raw = data?.content?.map(c => c.text || '').join('').trim();
     const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
