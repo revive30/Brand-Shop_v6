@@ -30,7 +30,7 @@ header{height:56px;border-bottom:1px solid var(--border);display:flex;align-item
 .app{display:grid;grid-template-columns:380px 1fr;height:calc(100vh - 56px)}
 
 /* Sidebar */
-.sidebar{border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px}
+.sidebar{border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:20px 20px 0;display:flex;flex-direction:column;gap:14px}.sidebar-scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:14px}.sidebar-footer{position:sticky;bottom:0;background:var(--surface);padding:14px 0;border-top:1px solid var(--border);flex-shrink:0}
 .field-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;display:block}
 input,select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r2);color:var(--text);padding:11px 13px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s}
 input:focus,select:focus,textarea:focus{border-color:var(--green)}
@@ -182,6 +182,7 @@ select option{background:var(--surface2)}
 
   <!-- Sidebar -->
   <aside class="sidebar">
+  <div class="sidebar-scroll">
     <div>
       <span class="field-label">디렉터 타입</span>
       <div class="dir-grid">
@@ -216,10 +217,13 @@ select option{background:var(--surface2)}
       <span class="field-label">메모 <span style="text-transform:none;font-weight:400;font-size:10px">(선택)</span></span>
       <textarea id="memo" placeholder="의도한 부분, 우려되는 부분, 참고사항"></textarea>
     </div>
+  </div><!-- /sidebar-scroll -->
+  <div class="sidebar-footer">
     <div class="spec-card" id="specCard">
       <div class="spec-row"><span class="spec-key">상태</span><span class="warn">이미지와 배너 종류를 선택하세요</span></div>
     </div>
-    <button class="run-btn" id="runBtn" disabled onclick="startReview()">✦ 검수 시작</button>
+    <button class="run-btn" id="runBtn" disabled onclick="startReview()" style="margin-top:10px">✦ 검수 시작</button>
+  </div>
   </aside>
 
   <!-- Main -->
@@ -321,12 +325,29 @@ $('bannerType').onchange=checkSpec;
 function vc(v){if(!v)return'vp-caution';if(v.includes('치명'))return'vp-danger';if(v.includes('수정'))return'vp-warn';if(v.includes('검토'))return'vp-caution';if(v.includes('양호'))return'vp-ok';return'vp-caution'}
 function sc(v){if(!v)return'sp-caution';if(v.includes('치명'))return'sp-danger';if(v.includes('수정'))return'sp-warn';if(v.includes('검토'))return'sp-caution';if(v.includes('양호'))return'sp-ok';return'sp-caution'}
 
+function getImgRect(){
+  const img=$('canvasImg');
+  const canvas=$('imgCanvas');
+  const cw=canvas.offsetWidth, ch=canvas.offsetHeight;
+  const iw=img.naturalWidth||(imgInfo&&imgInfo.w)||cw;
+  const ih=img.naturalHeight||(imgInfo&&imgInfo.h)||ch;
+  const scale=Math.min(cw/iw, ch/ih);
+  const rw=iw*scale, rh=ih*scale;
+  const ox=(cw-rw)/2, oy=(ch-rh)/2;
+  return{ox,oy,rw,rh};
+}
+
 function renderMarkers(markers){
   const layer=$('mkLayer'); layer.innerHTML='';
   if(!markers?.length)return;
+  const {ox,oy,rw,rh}=getImgRect();
   markers.forEach(m=>{
     const el=document.createElement('div');
-    el.className=`mk mk-${m.severity}`; el.style.cssText=`left:${m.x}%;top:${m.y}%`; el.dataset.id=m.id;
+    const px=ox+rw*(m.x/100);
+    const py=oy+rh*(m.y/100);
+    el.className=`mk mk-${m.severity}`;
+    el.style.cssText=`left:${px}px;top:${py}px`;
+    el.dataset.id=m.id;
     el.innerHTML=`<div class="mk-ring"></div><div class="mk-dot">${m.id}</div>`;
     el.addEventListener('click',()=>activateMk(m.id));
     layer.appendChild(el);
