@@ -1,0 +1,18 @@
+{
+  "version": "v3-clean",
+  "items": {
+    "BOM 상세": { "width": 1920, "height": 1080, "formats": ["image/png", "video/mp4"], "maxKB": 800, "safeArea": "좌우 80px / 상하 60px" },
+    "BOM 상세 퀴즈": { "width": 1920, "height": 1080, "formats": ["image/png"], "maxKB": 800, "safeArea": "외곽 안전영역 준수" },
+    "BOM 상세 응모": { "width": 1920, "height": 1080, "formats": ["image/png"], "maxKB": 800, "safeArea": "외곽 안전영역 준수" },
+    "BOM 개인정보 수집": { "width": 1920, "height": 1080, "formats": ["image/png"], "maxKB": 800, "safeArea": "외곽 안전영역 준수" },
+    "BOM 응모 완료": { "width": 1920, "height": 1080, "formats": ["image/png"], "maxKB": 800, "safeArea": "팝업/광고 배너 안전영역 확인" },
+    "ICP GNB 배너": { "width": null, "height": 42, "formats": ["image/png"], "maxKB": 500, "safeArea": "W Flexible x H 42 / Focus는 Default 대비 104% 권고" },
+    "ICP 빅배너 배경": { "width": 1920, "height": 900, "formats": ["image/jpeg", "video/mp4"], "maxKB": 800, "safeArea": "하단 필터 필수 포함" },
+    "ICP 빅배너 텍스트": { "width": 480, "height": 128, "formats": ["image/png"], "maxKB": 500, "safeArea": "텍스트 슬라이스" },
+    "ICP 프로모션 타이틀": { "width": 800, "height": 160, "formats": ["image/png"], "maxKB": 500, "safeArea": "상하 여백 및 중앙 배치" },
+    "ICP 4단 배너": { "width": 416, "height": 528, "formats": ["image/jpeg"], "maxKB": 500, "safeArea": "R값 0 필수" },
+    "ICP 2단 배너": { "width": 864, "height": 528, "formats": ["image/jpeg"], "maxKB": 500, "safeArea": "R값 0 필수" },
+    "ICP 1단 배너": { "width": 1760, "height": 528, "formats": ["image/jpeg"], "maxKB": 500, "safeArea": "R값 0 필수" },
+    "ICP 광고/홍보 배너": { "width": 864, "height": 280, "formats": ["image/jpeg"], "maxKB": 500, "safeArea": "R값 0 필수" }
+  }
+}
