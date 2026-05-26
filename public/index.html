@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>디자인 사전 검수 에이전트</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f12;
+  --surface:#1a1a20;
+  --surface2:#22222a;
+  --surface3:#2a2a34;
+  --border:rgba(255,255,255,.07);
+  --border2:rgba(255,255,255,.12);
+  --text:#f2f2f4;
+  --text2:#9494a4;
+  --text3:#55556a;
+  --green:#00c17a;
+  --green-dim:rgba(0,193,122,.12);
+  --green-border:rgba(0,193,122,.25);
+  --red:#ff4f4f;
+  --red-dim:rgba(255,79,79,.1);
+  --red-border:rgba(255,79,79,.2);
+  --yellow:#ffaa00;
+  --yellow-dim:rgba(255,170,0,.1);
+  --yellow-border:rgba(255,170,0,.2);
+  --blue:#4d9fff;
+  --blue-dim:rgba(77,159,255,.1);
+  --blue-border:rgba(77,159,255,.2);
+  --r:14px;--r2:10px;--r3:8px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Pretendard',sans-serif;min-height:100vh;font-size:15px;line-height:1.6}
+
+/* Header */
+header{height:60px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:12px;background:var(--bg);position:sticky;top:0;z-index:50}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--green);display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.header-title{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.header-badge{font-size:11px;padding:3px 9px;border:1px solid var(--green-border);color:var(--green);border-radius:99px;letter-spacing:.02em;font-weight:500}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 60px)}
+@media(max-width:960px){.layout{grid-template-columns:1fr}}
+
+/* Sidebar */
+.sidebar{border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
+.field-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;display:block}
+input,select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r2);color:var(--text);padding:12px 14px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s,background .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--green);background:var(--surface3)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+textarea{min-height:72px;resize:vertical}
+select{cursor:pointer}
+select option{background:var(--surface2)}
+
+/* Director selector */
+.director-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dir-btn{border:1.5px solid var(--border2);border-radius:var(--r2);padding:14px 10px;cursor:pointer;text-align:center;transition:all .15s;background:var(--surface2)}
+.dir-btn:hover{border-color:var(--border2);background:var(--surface3)}
+.dir-btn.active{border-color:var(--green);background:var(--green-dim)}
+.dir-btn.active .dir-letter{color:var(--green)}
+.dir-letter{font-size:22px;font-weight:800;color:var(--text2);margin-bottom:4px;transition:color .15s}
+.dir-name{font-size:13px;font-weight:600;color:var(--text)}
+.dir-sub{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.3}
+
+/* Upload */
+.upload-box{border:1.5px dashed var(--border2);border-radius:var(--r);min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--text3);cursor:pointer;background:var(--surface2);transition:all .15s;overflow:hidden;position:relative}
+.upload-box:hover{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+.upload-box img{max-width:100%;max-height:140px;display:block;border-radius:var(--r2)}
+.upload-icon{font-size:24px;margin-bottom:6px}
+.upload-text{font-size:14px;font-weight:500}
+.upload-sub{font-size:12px;margin-top:3px;opacity:.7}
+
+/* Spec */
+.spec-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.spec-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.spec-row:last-child{border-bottom:none}
+.spec-key{color:var(--text2);font-weight:500}
+.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--yellow)}
+
+/* Run button */
+.run-btn{width:100%;padding:15px;background:var(--green);border:none;border-radius:var(--r);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:-.01em}
+.run-btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+.run-btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.run-btn.loading{background:var(--surface3);color:var(--text2)}
+
+/* Main content area */
+.content{overflow-y:auto;background:var(--bg)}
+
+/* Empty state */
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text3);padding:4rem;text-align:center}
+.empty-icon{font-size:40px;opacity:.2}
+.empty-title{font-size:18px;font-weight:600;color:var(--text2)}
+.empty-desc{font-size:14px;line-height:1.7}
+
+/* Loading */
+.loading-view{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;display:none}
+.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-title{font-size:17px;font-weight:600;color:var(--text)}
+.loading-sub{font-size:14px;color:var(--text3)}
+
+/* Result */
+.result-view{display:none;flex-direction:column;gap:0}
+
+/* Image section */
+.image-section{position:relative;background:#000;border-bottom:1px solid var(--border)}
+.result-img{display:block;width:100%;max-height:500px;object-fit:contain}
+.marker-overlay{position:absolute;inset:0;pointer-events:none}
+.mk{position:absolute;transform:translate(-50%,-50%);pointer-events:all;cursor:pointer;z-index:5}
+.mk-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;border:2.5px solid rgba(255,255,255,.5);transition:all .15s;box-shadow:0 2px 12px rgba(0,0,0,.6)}
+.mk:hover .mk-dot,.mk.on .mk-dot{transform:scale(1.25);box-shadow:0 0 0 5px rgba(255,255,255,.15),0 4px 14px rgba(0,0,0,.6)}
+.mk-ring{position:absolute;inset:-5px;border-radius:50%;animation:ring 2.5s infinite}
+.mk-critical .mk-dot{background:var(--red)}
+.mk-critical .mk-ring{background:rgba(255,79,79,.25)}
+.mk-warning .mk-dot{background:var(--yellow)}
+.mk-warning .mk-ring{background:rgba(255,170,0,.25)}
+.mk-info .mk-dot{background:var(--blue)}
+.mk-info .mk-ring{background:rgba(77,159,255,.25)}
+@keyframes ring{0%,100%{opacity:1;transform:scale(1)}60%{opacity:0;transform:scale(2)}}
+
+/* Verdict bar */
+.verdict-section{padding:28px 32px;border-bottom:1px solid var(--border)}
+.verdict-row{display:flex;align-items:center;gap:16px}
+.verdict-pill{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;border:1px solid transparent}
+.vp-danger{background:var(--red-dim);border-color:var(--red-border);color:var(--red)}
+.vp-warn{background:var(--yellow-dim);border-color:var(--yellow-border);color:var(--yellow)}
+.vp-caution{background:var(--blue-dim);border-color:var(--blue-border);color:var(--blue)}
+.vp-ok{background:var(--green-dim);border-color:var(--green-border);color:var(--green)}
+.vp-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
+.vp-text{font-size:14px;font-weight:700}
+.verdict-dir{font-size:13px;color:var(--text3);margin-left:4px}
+.summary-list{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.sum-item{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--text2);line-height:1.6}
+.sum-dot{width:6px;height:6px;border-radius:50%;background:var(--yellow);flex-shrink:0;margin-top:8px}
+
+/* Marker comments */
+.markers-section{padding:24px 32px;border-bottom:1px solid var(--border)}
+.section-title{font-size:13px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px}
+.marker-cards{display:flex;flex-direction:column;gap:10px}
+.mk-card{border-radius:var(--r2);border:1px solid var(--border);background:var(--surface);padding:16px 18px;cursor:pointer;transition:all .15s}
+.mk-card:hover{border-color:var(--border2);background:var(--surface2)}
+.mk-card.on-critical{border-color:var(--red);background:var(--red-dim)}
+.mk-card.on-warning{border-color:var(--yellow);background:var(--yellow-dim)}
+.mk-card.on-info{border-color:var(--blue);background:var(--blue-dim)}
+.mk-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.mk-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
+.mb-critical{background:var(--red)}.mb-warning{background:var(--yellow)}.mb-info{background:var(--blue)}
+.mk-card-label{font-size:15px;font-weight:600}
+.mk-card-text{font-size:14px;color:var(--text2);line-height:1.65}
+
+/* Sections */
+.sections-area{padding:24px 32px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:12px}
+.sec-card{border-radius:var(--r);border:1px solid var(--border);background:var(--surface);overflow:hidden;transition:border-color .15s}
+.sec-card:hover{border-color:var(--border2)}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;cursor:pointer}
+.sec-head-left{display:flex;align-items:center;gap:12px}
+.sec-icon{font-size:18px}
+.sec-name{font-size:15px;font-weight:600}
+.sec-cause{font-size:12px;color:var(--text3);margin-top:2px}
+.sec-right{display:flex;align-items:center;gap:8px}
+.sec-pill{font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px}
+.sp-danger{background:var(--red-dim);color:var(--red)}
+.sp-warn{background:var(--yellow-dim);color:var(--yellow)}
+.sp-caution{background:var(--blue-dim);color:var(--blue)}
+.sp-ok{background:var(--green-dim);color:var(--green)}
+.sec-chevron{color:var(--text3);font-size:16px;transition:transform .2s}
+.sec-chevron.open{transform:rotate(180deg)}
+.sec-body{border-top:1px solid var(--border);padding:20px;display:flex;flex-direction:column;gap:14px}
+.sec-body.closed{display:none}
+.detail-block{display:flex;flex-direction:column;gap:4px}
+.detail-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.detail-text{font-size:14px;color:var(--text2);line-height:1.65}
+.suggest-block{background:rgba(0,193,122,.07);border-left:3px solid var(--green);padding:12px 16px;border-radius:0 var(--r3) var(--r3) 0;font-size:14px;color:var(--text);line-height:1.65}
+.mk-refs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.mk-ref-btn{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;cursor:pointer;transition:transform .15s}
+.mk-ref-btn:hover{transform:scale(1.2)}
+.mr-c{background:var(--red)}.mr-w{background:var(--yellow)}.mr-i{background:var(--blue)}
+
+/* Bottom */
+.bottom-area{padding:24px 32px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bottom-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.bottom-card-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
+.prio-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;color:var(--text2);line-height:1.5}
+.prio-item:last-child{border-bottom:none}
+.prio-num{font-size:10px;font-weight:800;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.pn1{background:var(--red-dim);color:var(--red)}
+.pn2{background:var(--yellow-dim);color:var(--yellow)}
+.pn3{background:var(--blue-dim);color:var(--blue)}
+.final-text{font-size:14px;color:var(--text2);line-height:1.75}
+
+.action-row{padding:20px 32px 32px;display:flex;gap:10px}
+.action-btn{flex:1;padding:13px;font-size:14px;font-weight:600;border-radius:var(--r2);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s}
+.action-btn:hover{background:var(--surface2);color:var(--text)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">✦</div>
+  <span class="header-title">디자인 사전 검수 에이전트</span>
+  <span class="header-badge">v6</span>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div>
+      <span class="field-label">디렉터 타입</span>
+      <div class="director-row">
+        <div class="dir-btn active" data-d="A" onclick="setDir('A')">
+          <div class="dir-letter">A</div>
+          <div class="dir-name">완성도</div>
+          <div class="dir-sub">마감·디테일</div>
+        </div>
+        <div class="dir-btn" data-d="B" onclick="setDir('B')">
+          <div class="dir-letter">B</div>
+          <div class="dir-name">브랜드</div>
+          <div class="dir-sub">톤·무드</div>
+        </div>
+        <div class="dir-btn" data-d="C" onclick="setDir('C')">
+          <div class="dir-letter">C</div>
+          <div class="dir-name">구조</div>
+          <div class="dir-sub">가독성·위계</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <span class="field-label">시안 이미지</span>
+      <div class="upload-box" id="upBox" onclick="document.getElementById('fileIn').click()">
+        <div id="upPlaceholder">
+          <div class="upload-icon">🖼</div>
+          <div class="upload-text">클릭 또는 드래그</div>
+          <div class="upload-sub">PNG · JPG · WebP</div>
+        </div>
+        <img id="upPreview" style="display:none" alt="미리보기"/>
+      </div>
+      <input id="fileIn" type="file" accept="image/png,image/jpeg,image/webp" style="display:none"/>
+    </div>
+
+    <div>
+      <span class="field-label">배너 종류</span>
+      <select id="bannerType"><option value="">선택하세요</option></select>
+    </div>
+
+    <div><span class="field-label">브랜드명</span><input id="brandName" placeholder="예: Galaxy S26, Volvo, KFC"/></div>
+    <div><span class="field-label">화면 목적</span><input id="purpose" placeholder="예: 이벤트 응모 유도, 혜택 안내"/></div>
+    <div><span class="field-label">주요 혜택 / 메시지</span><input id="benefit" placeholder="핵심 혜택 또는 메시지"/></div>
+    <div><span class="field-label">CTA</span><input id="cta" placeholder="예: 혜택 보러가기, 응모하기"/></div>
+    <div>
+      <span class="field-label">디자이너 메모 <span style="text-transform:none;font-weight:400;font-size:11px">(선택)</span></span>
+      <textarea id="memo" placeholder="의도한 부분, 우려되는 부분, 참고사항"></textarea>
+    </div>
+
+    <div class="spec-card" id="specCard">
+      <div class="spec-row"><span class="spec-key">상태</span><span class="warn">이미지와 배너 종류를 선택하세요</span></div>
+    </div>
+
+    <button class="run-btn" id="runBtn" disabled onclick="startReview()">✦ 검수 시작</button>
+
+  </aside>
+
+  <!-- Content -->
+  <main class="content" id="content">
+
+    <div class="empty" id="emptyView">
+      <div class="empty-icon">✦</div>
+      <div class="empty-title">검수 대기 중</div>
+      <div class="empty-desc">시안 이미지를 올리고<br>배너 종류를 선택하면<br>이미지 위에 마커가 표시됩니다</div>
+    </div>
+
+    <div class="loading-view" id="loadingView">
+      <div class="spinner"></div>
+      <div class="loading-title" id="loadTitle">이미지 분석 중</div>
+      <div class="loading-sub" id="loadSub">잠시만 기다려주세요</div>
+    </div>
+
+    <div class="result-view" id="resultView">
+
+      <!-- Image + markers -->
+      <div class="image-section">
+        <img id="resultImg" class="result-img" alt="시안"/>
+        <div class="marker-overlay" id="mkLayer"></div>
+      </div>
+
+      <!-- Verdict -->
+      <div class="verdict-section" id="verdictSec"></div>
+
+      <!-- Marker comments -->
+      <div class="markers-section" id="markersSec" style="display:none">
+        <div class="section-title">📍 마커 코멘트</div>
+        <div class="marker-cards" id="markerCards"></div>
+      </div>
+
+      <!-- Sections -->
+      <div class="sections-area" id="sectionsArea"></div>
+
+      <!-- Bottom -->
+      <div class="bottom-area" id="bottomArea"></div>
+
+      <!-- Actions -->
+      <div class="action-row">
+        <button class="action-btn" onclick="copyRes()">📋 결과 복사</button>
+        <button class="action-btn" onclick="resetView()">↺ 새 검수</button>
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+let rules={}, file=null, imgInfo=null, dir='A', lastText='', parsed=null, activeId=null;
+const $=id=>document.getElementById(id);
+const ICONS={tv:'📺',hierarchy:'📊',brand:'🎨',finish:'✨'};
+const DIR_NAMES={A:'완성도 디렉터',B:'브랜드 디렉터',C:'구조 디렉터'};
+const LOADS=[['이미지 분석 중','시안을 꼼꼼히 살펴보고 있어요'],['규격 기준 대조 중','사이즈와 안전영역을 확인하고 있어요'],['디렉터 기준 적용 중','선택하신 디렉터 시각으로 검수 중이에요'],['리포트 생성 중','거의 다 됐어요']];
+
+async function init(){
+  try{
+    const r=await fetch('/rules/design-guide-rules.json');
+    rules=await r.json();
+    Object.keys(rules.items||{}).forEach(k=>{
+      const o=document.createElement('option');o.value=k;o.textContent=k;
+      $('bannerType').appendChild(o);
+    });
+  }catch(e){console.warn(e)}
+}
+
+function setDir(d){
+  dir=d;
+  document.querySelectorAll('.dir-btn').forEach(b=>b.classList.toggle('active',b.dataset.d===d));
+}
+
+function f2b64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f);})}
+function getImgInfo(f){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res({w:i.naturalWidth,h:i.naturalHeight});i.onerror=rej;i.src=URL.createObjectURL(f);})}
+
+function checkSpec(){
+  const type=$('bannerType').value, spec=rules.items?.[type];
+  if(!file||!type||!spec){$('runBtn').disabled=true;return null;}
+  const kb=Math.round(file.size/1024);
+  const sizeOk=(spec.width===null||imgInfo.w===spec.width)&&imgInfo.h===spec.height;
+  const fmtOk=spec.formats.includes(file.type);
+  const st=spec.width===null?`H ${spec.height}`:`${spec.width}×${spec.height}`;
+  $('specCard').innerHTML=`
+    <div class="spec-row"><span class="spec-key">사이즈</span><span class="${sizeOk?'ok':'bad'}">${imgInfo.w}×${imgInfo.h} / 기준 ${st}</span></div>
+    <div class="spec-row"><span class="spec-key">파일 형식</span><span class="${fmtOk?'ok':'bad'}">${file.type.replace('image/','').toUpperCase()}</span></div>
+    <div class="spec-row"><span class="spec-key">용량</span><span class="warn">${kb}KB (검수용 파일 — 참고만)</span></div>
+    <div class="spec-row"><span class="spec-key">안전영역</span><span class="warn">${spec.safeArea}</span></div>`;
+  $('runBtn').disabled=false;
+  return{type,actual:{width:imgInfo.w,height:imgInfo.h,mime:file.type,kb},expected:spec,result:{sizeOk,fmtOk}};
+}
+
+async function handleFile(f){
+  file=f; imgInfo=await getImgInfo(f);
+  const url=URL.createObjectURL(f);
+  $('upPreview').src=url; $('upPreview').style.display='block'; $('upPlaceholder').style.display='none';
+  $('resultImg').src=url;
+  checkSpec();
+}
+
+$('upBox').addEventListener('dragover',e=>{e.preventDefault();$('upBox').style.borderColor='var(--green)'});
+$('upBox').addEventListener('dragleave',()=>$('upBox').style.borderColor='');
+$('upBox').addEventListener('drop',e=>{e.preventDefault();$('upBox').style.borderColor='';const f=e.dataTransfer.files[0];if(f)handleFile(f)});
+$('fileIn').onchange=e=>{if(e.target.files[0])handleFile(e.target.files[0])};
+$('bannerType').onchange=checkSpec;
+
+// Verdict helpers
+function vc(v){if(!v)return'vp-caution';if(v.includes('치명'))return'vp-danger';if(v.includes('수정'))return'vp-warn';if(v.includes('검토'))return'vp-caution';if(v.includes('양호'))return'vp-ok';return'vp-caution'}
+function sc(v){if(!v)return'sp-caution';if(v.includes('치명'))return'sp-danger';if(v.includes('수정'))return'sp-warn';if(v.includes('검토'))return'sp-caution';if(v.includes('양호'))return'sp-ok';return'sp-caution'}
+
+function renderMarkers(markers){
+  const layer=$('mkLayer'); layer.innerHTML='';
+  if(!markers?.length)return;
+  markers.forEach(m=>{
+    const el=document.createElement('div');
+    el.className=`mk mk-${m.severity}`; el.style.cssText=`left:${m.x}%;top:${m.y}%`; el.dataset.id=m.id;
+    el.innerHTML=`<div class="mk-ring"></div><div class="mk-dot">${m.id}</div>`;
+    el.addEventListener('click',()=>activateMk(m.id));
+    layer.appendChild(el);
+  });
+}
+
+function renderMkCards(markers){
+  const sec=$('markersSec'), cards=$('markerCards');
+  if(!markers?.length){sec.style.display='none';return;}
+  sec.style.display='block';
+  cards.innerHTML=markers.map(m=>`
+    <div class="mk-card" id="mkc-${m.id}" onclick="activateMk(${m.id})">
+      <div class="mk-card-head">
+        <span class="mk-badge mb-${m.severity}">${m.id}</span>
+        <span class="mk-card-label">${m.label}</span>
+      </div>
+      <div class="mk-card-text">${m.comment}</div>
+    </div>`).join('');
+}
+
+function activateMk(id){
+  activeId=id;
+  document.querySelectorAll('.mk').forEach(el=>el.classList.toggle('on',Number(el.dataset.id)===id));
+  document.querySelectorAll('.mk-card').forEach(el=>{
+    el.classList.remove('on-critical','on-warning','on-info');
+  });
+  const m=parsed?.markers?.find(x=>x.id===id);
+  const card=$('mkc-'+id);
+  if(card){card.classList.add('on-'+(m?.severity||'info'));card.scrollIntoView({behavior:'smooth',block:'nearest'})}
+}
+
+function toggleSec(id){
+  const b=$('sb-'+id),c=$('ch-'+id);
+  b.classList.toggle('closed'); c.classList.toggle('open');
+}
+
+function renderResult(p){
+  // Verdict
+  const vcls=vc(p.verdict);
+  $('verdictSec').innerHTML=`
+    <div class="verdict-row">
+      <div class="verdict-pill ${vcls}"><div class="vp-dot"></div><span class="vp-text">${p.verdict}</span></div>
+      <span class="verdict-dir">${DIR_NAMES[dir]} 기준</span>
+    </div>
+    ${p.summary?.length?`<div class="summary-list">${p.summary.map(s=>`<div class="sum-item"><div class="sum-dot"></div><span>${s}</span></div>`).join('')}</div>`:''}`;
+
+  // Markers
+  renderMarkers(p.markers||[]);
+  renderMkCards(p.markers||[]);
+
+  // Sections
+  $('sectionsArea').innerHTML=(p.sections||[]).map(s=>{
+    const refs=(s.markerIds||[]).map(mid=>{
+      const m=p.markers?.find(x=>x.id===mid);
+      return `<button class="mk-ref-btn mr-${m?.severity?.[0]||'i'}" onclick="activateMk(${mid})">${mid}</button>`;
+    }).join('');
+    return `
+    <div class="sec-card">
+      <div class="sec-head" onclick="toggleSec('${s.id}')">
+        <div class="sec-head-left">
+          <span class="sec-icon">${ICONS[s.id]||'•'}</span>
+          <div><div class="sec-name">${s.title}</div>${s.cause?`<div class="sec-cause">${s.cause}</div>`:''}</div>
+        </div>
+        <div class="sec-right">
+          <span class="sec-pill ${sc(s.verdict)}">${s.verdict}</span>
+          <span class="sec-chevron open" id="ch-${s.id}">▾</span>
+        </div>
+      </div>
+      <div class="sec-body" id="sb-${s.id}">
+        ${refs?`<div class="mk-refs">${refs}</div>`:''}
+        ${s.problem?`<div class="detail-block"><div class="detail-label">문제</div><div class="detail-text">${s.problem}</div></div>`:''}
+        ${s.reason?`<div class="detail-block"><div class="detail-label">이유</div><div class="detail-text">${s.reason}</div></div>`:''}
+        ${s.suggestion?`<div class="suggest-block">${s.suggestion}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Bottom
+  const prios=(p.priorities||[]).map((t,i)=>`<div class="prio-item"><span class="prio-num pn${i+1}">${i+1}</span><span>${t}</span></div>`).join('');
+  $('bottomArea').innerHTML=`
+    ${prios?`<div class="bottom-card"><div class="bottom-card-title">우선 수정 항목</div>${prios}</div>`:'<div></div>'}
+    ${p.finalComment?`<div class="bottom-card"><div class="bottom-card-title">디렉터 전달 전 코멘트</div><div class="final-text">${p.finalComment}</div></div>`:'<div></div>'}`;
+}
+
+async function startReview(){
+  const spec=checkSpec(); if(!spec)return;
+  $('emptyView').style.display='none';
+  $('resultView').style.display='none';
+  $('loadingView').style.display='flex';
+  $('runBtn').disabled=true; $('runBtn').textContent='검수 중...'; $('runBtn').classList.add('loading');
+
+  let li=0; $('loadTitle').textContent=LOADS[0][0]; $('loadSub').textContent=LOADS[0][1];
+  const timer=setInterval(()=>{li=(li+1)%LOADS.length;$('loadTitle').textContent=LOADS[li][0];$('loadSub').textContent=LOADS[li][1]},2800);
+
+  try{
+    const b64=await f2b64(file);
+    const res=await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      imageBase64:b64,mimeType:file.type,reviewType:$('bannerType').value,
+      brandName:$('brandName').value,purpose:$('purpose').value,
+      benefit:$('benefit').value,cta:$('cta').value,memo:$('memo').value,
+      specCheck:spec,directorType:dir
+    })});
+    const data=await res.json();
+    clearInterval(timer);
+    if(!res.ok)throw new Error(data.error||'API 오류');
+
+    lastText=(data.text||'').replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
+    parsed=data.parsed;
+    if(!parsed){try{const r=JSON.parse(lastText);if(r?.verdict)parsed=r;}catch(e){try{const m=lastText.match(/\{[\s\S]*\}/);if(m){const r=JSON.parse(m[0]);if(r?.verdict)parsed=r;}}catch(e2){}}}
+
+    if(!parsed){
+      const raw=lastText;
+      for(const fn of[()=>JSON.parse(raw),()=>{const m=raw.match(/\{[\s\S]*\}/);return m?JSON.parse(m[0]):null}]){
+        try{const r=fn();if(r?.verdict){parsed=r;break}}catch{}
+      }
+    }
+
+    $('loadingView').style.display='none';
+    if(parsed){
+      renderResult(parsed);
+      $('resultView').style.display='flex';
+    } else {
+      $('resultView').innerHTML=`<pre style="padding:24px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap">${lastText}</pre>`;
+      $('resultView').style.display='flex';
+    }
+
+  }catch(e){
+    clearInterval(timer);
+    $('loadingView').style.display='none';
+    $('emptyView').style.display='flex';
+    $('emptyView').innerHTML=`<div class="empty-icon">⚠️</div><div class="empty-title">오류 발생</div><div class="empty-desc" style="color:var(--red)">${e.message}</div>`;
+  }finally{
+    $('runBtn').disabled=false; $('runBtn').textContent='✦ 검수 시작'; $('runBtn').classList.remove('loading');
+  }
+}
+
+function copyRes(){navigator.clipboard.writeText(lastText).then(()=>{const b=event.target;b.textContent='✓ 복사됨';setTimeout(()=>b.textContent='📋 결과 복사',2000)})}
+
+function resetView(){
+  parsed=null;lastText='';activeId=null;
+  $('resultView').style.display='none';
+  $('emptyView').style.display='flex';
+  $('emptyView').innerHTML=`<div class="empty-icon">✦</div><div class="empty-title">검수 대기 중</div><div class="empty-desc">시안 이미지를 올리고<br>배너 종류를 선택하면<br>이미지 위에 마커가 표시됩니다</div>`;
+}
+
+init();
+</script>
+</body>
+</html>
