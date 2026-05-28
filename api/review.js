@@ -78,7 +78,7 @@ REVIEW GUIDELINES:
 4. For safe area: only flag if CORE ELEMENTS (text, key visuals, CTA) are outside. Background elements crossing the boundary is fine.
 5. File size shown is a PREVIEW file, ignore it completely.
 6. Be specific about what you see in the actual image.
-7. Markers should point to actual problem areas you can see in the image.
+7. For markers: divide the image into a 5x5 grid (col 1-5 left to right, row 1-5 top to bottom). Use col/row to indicate which grid cell the problem is in. col:1 row:1 = top-left, col:5 row:5 = bottom-right.
 8. If design rules are provided above, actively check each rule and flag violations.
 9. CRITICAL — Font size: Do NOT flag font sizes that are within the allowed TV range (minimum 16pt, realistic minimum 20pt, body 28-36pt, title 60-80pt). Only flag if clearly too small even by TV minimum standards.
 10. CRITICAL — Designer intent: If a design choice appears intentional (mixed styles, perspective breaks, bold color), consider it may be deliberate before flagging.
@@ -91,7 +91,7 @@ Return ONLY a valid JSON object. No markdown, no code fences.
   "directorType": "${directorType || 'A'}",
   "summary": ["핵심 문제 1문장", "핵심 문제 1문장"],
   "markers": [
-    {"id": 1, "x": 25, "y": 30, "severity": "critical", "label": "제목", "comment": "구체적 문제 설명 2-3문장"}
+    {"id": 1, "col": 3, "row": 2, "severity": "critical", "label": "제목", "comment": "구체적 문제 설명 2-3문장"}
   ],
   "sections": [
     {"id": "tv", "title": "TV 시청 환경 적합성", "verdict": "치명 리스크", "cause": "복합 리스크", "problem": "구체적 문제", "reason": "이유", "suggestion": "개선 제안", "markerIds": [1]},
