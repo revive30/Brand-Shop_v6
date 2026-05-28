@@ -53,54 +53,51 @@ IMPORTANT SAFE AREA RULE: Only flag safe area violations when CORE ELEMENTS (mai
       ? `\nDesign rules for this banner type (from official guide):\n${designNotes.map((n, i) => `${i + 1}. ${n}`).join('\n')}\nThese are mandatory rules. Check whether the submitted design follows each of them.`
       : '';
 
-    const prompt = `You are reviewing a TV service design draft. 
-
-Director persona: ${dp.name}
-${dp.persona}
-Review priority: ${dp.priority}
+    const prompt = `You are a senior TV design director reviewing a design draft.
 
 Design info:
 - Banner type: ${reviewType || 'unknown'}
-- Brand: ${brandName || 'unknown'}  
-- Purpose: ${purpose || 'unknown'}
-- Key benefit: ${benefit || 'unknown'}
-- CTA: ${cta || 'unknown'}
+- Brand: ${brandName || 'unknown'}
 - Designer notes: ${memo || 'none'}
-${specNote}
 ${intensityNote}
 ${directorGuidelineText}
 ${designNoteText}
 
-REVIEW GUIDELINES:
-1. CRITICAL — Only flag issues that are explicitly covered in the Director Guidelines or Design Rules provided above. Do NOT add feedback based on general design knowledge or personal judgment. If something is not mentioned in the guidelines, do not comment on it.
-2. Think like the director persona described above, not like a checklist robot.
-3. Judge the overall "quality level" and "design sensibility" of the work — but only within the scope of the provided guidelines.
-4. For safe area: only flag if CORE ELEMENTS (text, key visuals, CTA) are outside. Background elements crossing the boundary is fine.
-5. File size shown is a PREVIEW file, ignore it completely.
-6. Be specific about what you see in the actual image.
-7. For markers: divide the image into a 7x7 grid (col 1-7 left to right, row 1-7 top to bottom). Carefully look at where the problem element is located and assign the most accurate col/row. col:1 row:1 = top-left corner, col:4 row:4 = center, col:7 row:7 = bottom-right corner. Be as precise as possible.
-8. If design rules are provided above, actively check each rule and flag violations.
-9. CRITICAL — Font size: You CANNOT measure pt values from an image. Never say a font "is X pt" or "should be X pt". If text looks visually small or hard to read, comment ONLY: "해당 텍스트가 작아 보입니다. TV 권장 기준(본문 28pt 이상, 최소 16pt)을 확인해주세요." — Do not make any further size judgment beyond this.
-10. CRITICAL — Designer intent: If a design choice appears intentional (mixed styles, perspective breaks, bold color), consider it may be deliberate before flagging.
-11. CRITICAL — Distinguish between fatal issues (치명 리스크) and improvement suggestions (개선 권장). Do not treat every imperfection as critical.
+WHAT YOU CAN AND CANNOT DO:
+- You are looking at a screenshot. You CANNOT measure pixel values, safe area boundaries, font pt sizes, or identify UI templates.
+- You CAN judge: overall mood, brand tone, visual hierarchy, whether information reads clearly at a glance, obvious quality issues (bad compositing, clashing colors, cluttered layout).
+
+REVIEW SCOPE — only judge these 4 things:
+1. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가
+2. 정보 전달 — 핵심 메시지가 한눈에 읽히는가, 시선 흐름이 자연스러운가
+3. 시각적 완성도 — 명백히 어색한 합성, 색상 충돌, 지저분한 레이아웃이 있는가
+4. 텍스트 위계 — 타이틀·본문·부가정보의 크기·굵기 위계가 느껴지는가
+
+STRICT RULES:
+- Do NOT comment on: safe area, pixel alignment, font pt sizes, QR codes, navigation arrows, confirm/close buttons, template UI elements, file size.
+- Do NOT flag things you cannot visually confirm from the image.
+- If something looks intentional (mixed styles, bold color, perspective break), assume it's deliberate.
+- Distinguish clearly: 치명 리스크 = would reject, 수정 권장 = should fix, 검토 필요 = minor, 양호 = fine.
+- If nothing is wrong in a section, say 양호. Do not manufacture feedback.
+
+For markers: divide the image into a 7x7 grid (col 1-7 left to right, row 1-7 top to bottom). Only place markers on genuinely visible problems.
 
 Return ONLY a valid JSON object. No markdown, no code fences.
 
 {
-  "verdict": "치명 리스크",
+  "verdict": "양호",
   "directorType": "${directorType || 'A'}",
-  "summary": ["핵심 문제 1문장", "핵심 문제 1문장"],
+  "summary": ["핵심 문제 1문장"],
   "markers": [
-    {"id": 1, "col": 3, "row": 2, "severity": "critical", "label": "제목", "comment": "구체적 문제 설명 2-3문장"}
+    {"id": 1, "col": 3, "row": 2, "severity": "warning", "label": "레이블", "comment": "구체적으로 눈에 보이는 문제 2문장"}
   ],
   "sections": [
-    {"id": "tv", "title": "TV 시청 환경 적합성", "verdict": "치명 리스크", "cause": "복합 리스크", "problem": "구체적 문제", "reason": "이유", "suggestion": "개선 제안", "markerIds": [1]},
-    {"id": "hierarchy", "title": "정보 위계", "verdict": "수정 권장", "cause": "기획/UX 구조 리스크", "problem": "구체적 문제", "reason": "이유", "suggestion": "개선 제안", "markerIds": []},
-    {"id": "brand", "title": "브랜드 톤 유지", "verdict": "검토 필요", "cause": null, "problem": "구체적 문제", "reason": "이유", "suggestion": "개선 제안", "markerIds": []},
-    {"id": "finish", "title": "완성도 / 마감감", "verdict": "수정 권장", "cause": null, "problem": "구체적 문제", "reason": "이유", "suggestion": "개선 제안", "markerIds": []}
+    {"id": "brand", "title": "브랜드 톤 & 무드", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []},
+    {"id": "hierarchy", "title": "정보 전달 & 위계", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []},
+    {"id": "finish", "title": "시각적 완성도", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []}
   ],
-  "priorities": ["1순위 수정 항목", "2순위 수정 항목", "3순위 수정 항목"],
-  "finalComment": "디렉터 전달 가능 여부와 핵심 이유 2-3문장"
+  "priorities": ["1순위 수정 항목"],
+  "finalComment": "전체 총평 2문장"
 }
 
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
