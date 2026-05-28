@@ -36,6 +36,12 @@ Spec check (for reference only):
 
 IMPORTANT SAFE AREA RULE: Only flag safe area violations when CORE ELEMENTS (main text, key visuals, CTA buttons, product images) are outside the safe zone. Background decorations, gradients, and ornamental elements extending beyond the safe area are ACCEPTABLE and should NOT be flagged as errors.` : '';
 
+    // ✅ designNotes: JSON에서 넘어온 배너별 디자인 룰을 프롬프트에 주입
+    const designNotes = specCheck?.expected?.designNotes;
+    const designNoteText = (Array.isArray(designNotes) && designNotes.length > 0)
+      ? `\nDesign rules for this banner type (from official guide):\n${designNotes.map((n, i) => `${i + 1}. ${n}`).join('\n')}\nThese are mandatory rules. Check whether the submitted design follows each of them.`
+      : '';
+
     const prompt = `You are reviewing a TV service design draft. 
 
 Director persona: ${dp.name}
@@ -50,6 +56,7 @@ Design info:
 - CTA: ${cta || 'unknown'}
 - Designer notes: ${memo || 'none'}
 ${specNote}
+${designNoteText}
 
 REVIEW GUIDELINES:
 1. Think like the director persona described above, not like a checklist robot.
@@ -59,6 +66,7 @@ REVIEW GUIDELINES:
 5. File size shown is a PREVIEW file, ignore it completely.
 6. Be specific about what you see in the actual image.
 7. Markers should point to actual problem areas you can see in the image.
+8. If design rules are provided above, actively check each rule and flag violations.
 
 Return ONLY a valid JSON object. No markdown, no code fences.
 
@@ -103,13 +111,11 @@ All text in Korean.`;
     const data = await response.json();
     if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || 'API 오류' });
 
-    // stop_reason이 max_tokens면 JSON이 잘린 것
     if (data.stop_reason === 'max_tokens') {
       console.warn('[review] max_tokens hit — response truncated');
     }
 
     const raw = (data?.content || []).map(c => c.type === 'text' ? (c.text || '') : '').join('').trim();
-    // 마크다운 코드펜스 제거 (멀티라인 포함)
     const cleaned = raw
       .replace(/^```json\s*/i, '')
       .replace(/^```\s*/i, '')
@@ -119,14 +125,11 @@ All text in Korean.`;
     let parsed = null;
     for (const t of [cleaned, raw]) {
       if (parsed) break;
-      // 1) 직접 파싱
       try { const r = JSON.parse(t); if (r?.verdict) { parsed = r; break; } } catch(e) {}
-      // 2) JSON 블록 추출 후 파싱
       try {
         const m = t.match(/\{[\s\S]*\}/);
         if (m) { const r = JSON.parse(m[0]); if (r?.verdict) { parsed = r; break; } }
       } catch(e) {}
-      // 3) 이중 인코딩된 경우 (문자열 안에 JSON이 들어있는 경우)
       try {
         const r = JSON.parse(JSON.parse(t));
         if (r?.verdict) { parsed = r; break; }
