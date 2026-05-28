@@ -509,9 +509,15 @@ async function startReview(){
     $('canvasImg').style.display='block';
 
     if(parsed){
-      renderMarkers(parsed.markers||[]);
-      renderCpList(parsed.markers||[]);
-      renderBottom(parsed);
+      // 이미지 완전히 로드된 후 마커 렌더링
+      const img=$('canvasImg');
+      const doRender=()=>{
+        renderMarkers(parsed.markers||[]);
+        renderCpList(parsed.markers||[]);
+        renderBottom(parsed);
+      };
+      if(img.complete && img.naturalWidth>0) doRender();
+      else img.onload=doRender;
     }else{
       $("bottomPane").innerHTML=`<pre style="padding:24px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap">${lastText}</pre>`;
     }
