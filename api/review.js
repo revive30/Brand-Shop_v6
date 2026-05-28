@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
-    const { imageBase64, mimeType, reviewType, brandName, purpose, benefit, cta, memo, specCheck, directorType } = req.body || {};
+    const { imageBase64, mimeType, reviewType, brandName, purpose, benefit, cta, memo, specCheck, directorType, intensityLevel, intensityInstruction } = req.body || {};
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
     const directorProfiles = {
@@ -36,6 +36,11 @@ Spec check (for reference only):
 
 IMPORTANT SAFE AREA RULE: Only flag safe area violations when CORE ELEMENTS (main text, key visuals, CTA buttons, product images) are outside the safe zone. Background decorations, gradients, and ornamental elements extending beyond the safe area are ACCEPTABLE and should NOT be flagged as errors.` : '';
 
+    // ✅ intensityInstruction: 검수 강도 지시
+    const intensityNote = intensityInstruction
+      ? `\nReview intensity: ${intensityInstruction}`
+      : '';
+
     // ✅ directorGuidelines: JSON 전역 디렉터 기준 주입
     const directorGuidelines = specCheck?.expected?.directorGuidelines || specCheck?.directorGuidelines;
     const directorGuidelineText = (Array.isArray(directorGuidelines) && directorGuidelines.length > 0)
@@ -62,6 +67,7 @@ Design info:
 - CTA: ${cta || 'unknown'}
 - Designer notes: ${memo || 'none'}
 ${specNote}
+${intensityNote}
 ${directorGuidelineText}
 ${designNoteText}
 
