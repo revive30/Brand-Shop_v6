@@ -367,10 +367,9 @@ function renderMarkers(markers){
   const layer=$('mkLayer'); layer.innerHTML='';
   if(!markers?.length)return;
   const {ox,oy,rw,rh}=getImgRect();
-  const COLS=5, ROWS=5;
+  const COLS=7, ROWS=7;
   markers.forEach(m=>{
     const el=document.createElement('div');
-    // col/row 기반 (1~5), 셀 중앙에 마커 배치
     const col=Math.min(Math.max(m.col||1,1),COLS);
     const row=Math.min(Math.max(m.row||1,1),ROWS);
     const px=ox + rw * ((col - 0.5) / COLS);
