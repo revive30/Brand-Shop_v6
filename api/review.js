@@ -72,9 +72,9 @@ ${directorGuidelineText}
 ${designNoteText}
 
 REVIEW GUIDELINES:
-1. Think like the director persona described above, not like a checklist robot.
-2. Judge the overall "quality level" and "design sensibility" of the work.
-3. Ask yourself: "Would this pass a real design director's review?"
+1. CRITICAL — Only flag issues that are explicitly covered in the Director Guidelines or Design Rules provided above. Do NOT add feedback based on general design knowledge or personal judgment. If something is not mentioned in the guidelines, do not comment on it.
+2. Think like the director persona described above, not like a checklist robot.
+3. Judge the overall "quality level" and "design sensibility" of the work — but only within the scope of the provided guidelines.
 4. For safe area: only flag if CORE ELEMENTS (text, key visuals, CTA) are outside. Background elements crossing the boundary is fine.
 5. File size shown is a PREVIEW file, ignore it completely.
 6. Be specific about what you see in the actual image.
