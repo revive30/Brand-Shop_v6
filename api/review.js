@@ -78,9 +78,9 @@ REVIEW GUIDELINES:
 4. For safe area: only flag if CORE ELEMENTS (text, key visuals, CTA) are outside. Background elements crossing the boundary is fine.
 5. File size shown is a PREVIEW file, ignore it completely.
 6. Be specific about what you see in the actual image.
-7. For markers: divide the image into a 5x5 grid (col 1-5 left to right, row 1-5 top to bottom). Use col/row to indicate which grid cell the problem is in. col:1 row:1 = top-left, col:5 row:5 = bottom-right.
+7. For markers: divide the image into a 7x7 grid (col 1-7 left to right, row 1-7 top to bottom). Carefully look at where the problem element is located and assign the most accurate col/row. col:1 row:1 = top-left corner, col:4 row:4 = center, col:7 row:7 = bottom-right corner. Be as precise as possible.
 8. If design rules are provided above, actively check each rule and flag violations.
-9. CRITICAL — Font size: Do NOT flag font sizes that are within the allowed TV range (minimum 16pt, realistic minimum 20pt, body 28-36pt, title 60-80pt). Only flag if clearly too small even by TV minimum standards.
+9. CRITICAL — Font size: You CANNOT measure pt values from an image. Never say a font "is X pt" or "should be X pt". If text looks visually small or hard to read, comment ONLY: "해당 텍스트가 작아 보입니다. TV 권장 기준(본문 28pt 이상, 최소 16pt)을 확인해주세요." — Do not make any further size judgment beyond this.
 10. CRITICAL — Designer intent: If a design choice appears intentional (mixed styles, perspective breaks, bold color), consider it may be deliberate before flagging.
 11. CRITICAL — Distinguish between fatal issues (치명 리스크) and improvement suggestions (개선 권장). Do not treat every imperfection as critical.
 
