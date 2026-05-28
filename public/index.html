@@ -19,16 +19,13 @@
 }
 body{background:var(--bg);color:var(--text);font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
 
-/* Header */
 header{height:60px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:12px;background:var(--bg);position:sticky;top:0;z-index:100}
 .logo{width:30px;height:30px;border-radius:9px;background:var(--blue);display:grid;place-items:center;font-size:14px;flex-shrink:0}
 .header-title{font-size:16px;font-weight:700;letter-spacing:-.02em}
 .header-badge{font-size:10px;padding:3px 9px;border:1px solid var(--blue-border);color:var(--blue);border-radius:99px;font-weight:600}
 
-/* Layout */
 .app{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 60px)}
 
-/* Sidebar */
 .sidebar{border-right:1px solid var(--border);background:var(--surface);padding:24px 20px 0;display:flex;flex-direction:column}
 .sidebar-scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:20px;padding-bottom:16px}
 .sidebar-footer{position:sticky;bottom:0;background:var(--surface);padding:16px 0;border-top:1px solid var(--border);flex-shrink:0}
@@ -43,17 +40,16 @@ textarea{min-height:160px;resize:vertical;line-height:1.7}
 select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2355556a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 select option{background:var(--surface2)}
 
-/* Director */
-.dir-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.dir-btn{border:1px solid var(--border2);border-radius:var(--r2);padding:14px 8px;cursor:pointer;text-align:center;transition:all .15s;background:var(--surface2)}
-.dir-btn:hover{border-color:var(--blue);background:var(--blue-dim)}
-.dir-btn.active{border-color:var(--blue);background:var(--blue-dim)}
-.dir-btn.active .dir-letter{color:var(--blue)}
-.dir-letter{font-size:22px;font-weight:800;color:var(--text3);margin-bottom:4px;transition:color .15s}
-.dir-name{font-size:12px;font-weight:700;color:var(--text)}
-.dir-sub{font-size:10px;color:var(--text3);margin-top:2px}
+/* 검수 강도 */
+.intensity-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.int-btn{border:1px solid var(--border2);border-radius:var(--r2);padding:14px 8px;cursor:pointer;text-align:center;transition:all .15s;background:var(--surface2)}
+.int-btn:hover{border-color:var(--blue);background:var(--blue-dim)}
+.int-btn.active{border-color:var(--blue);background:var(--blue-dim)}
+.int-btn.active .int-icon{color:var(--blue)}
+.int-icon{font-size:20px;margin-bottom:4px;transition:color .15s;color:var(--text3)}
+.int-name{font-size:12px;font-weight:700;color:var(--text)}
+.int-sub{font-size:10px;color:var(--text3);margin-top:2px}
 
-/* Upload */
 .upload-box{border:1.5px dashed var(--border2);border-radius:var(--r);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--text3);cursor:pointer;background:var(--surface2);transition:all .15s;overflow:hidden}
 .upload-box:hover{border-color:var(--blue);background:var(--blue-dim)}
 .upload-box img{max-width:100%;max-height:120px;display:block;border-radius:var(--r2)}
@@ -61,7 +57,6 @@ select option{background:var(--surface2)}
 .upload-text{font-size:13px;font-weight:600;color:var(--text2)}
 .upload-sub{font-size:11px;margin-top:2px}
 
-/* Spec */
 .spec-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
 .spec-row{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;border-bottom:1px solid var(--border);font-size:12px}
 .spec-row:last-child{border-bottom:none}
@@ -72,11 +67,9 @@ select option{background:var(--surface2)}
 .run-btn:hover:not(:disabled){background:#0055d4;box-shadow:0 4px 20px rgba(0,100,255,.35)}
 .run-btn:disabled{opacity:.3;cursor:not-allowed}
 
-/* Main */
 .main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
 .top-pane{display:grid;grid-template-columns:1fr 300px;flex-shrink:0;border-bottom:1px solid var(--border);height:420px}
 
-/* Canvas */
 .img-canvas{position:relative;background:#0a0a0d;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .canvas-img{display:block;max-width:100%;max-height:100%;object-fit:contain}
 .mk-layer{position:absolute;inset:0;pointer-events:none}
@@ -96,7 +89,6 @@ select option{background:var(--surface2)}
 .loading-msg{font-size:15px;font-weight:600;color:var(--text2)}
 .loading-sub{font-size:12px;color:var(--text3)}
 
-/* Comment panel */
 .comment-panel{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
 .cp-head{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.01em;flex-shrink:0;display:flex;align-items:center;gap:6px}
 .cp-list{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;flex:1}
@@ -112,10 +104,8 @@ select option{background:var(--surface2)}
 .cp-text{font-size:12px;color:var(--text2);line-height:1.6}
 .cp-empty{padding:2.5rem 1.5rem;text-align:center;color:var(--text3);font-size:13px;line-height:1.9}
 
-/* Bottom pane */
 .bottom-pane{flex:1;overflow-y:auto}
 
-/* Verdict */
 .verdict-sec{padding:24px 28px;border-bottom:1px solid var(--border);background:var(--surface)}
 .verdict-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .v-pill{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;border:1px solid transparent}
@@ -130,7 +120,6 @@ select option{background:var(--surface2)}
 .sum-item{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--text2);line-height:1.65}
 .sum-dot{width:5px;height:5px;border-radius:50%;background:var(--yellow);flex-shrink:0;margin-top:9px}
 
-/* Sections */
 .sections-sec{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
 .sec-card{border-radius:var(--r);border:1px solid var(--border);background:var(--surface);overflow:hidden}
 .sec-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;transition:background .12s}
@@ -158,7 +147,6 @@ select option{background:var(--surface2)}
 .mk-ref:hover{transform:scale(1.2)}
 .mr-c{background:var(--red)}.mr-w{background:var(--yellow)}.mr-i{background:var(--blue)}
 
-/* Bottom cards */
 .bottom-cards{padding:20px 24px 28px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .b-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
 .b-card-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:-.01em;margin-bottom:14px}
@@ -172,13 +160,18 @@ select option{background:var(--surface2)}
 .act-btn{flex:1;padding:12px;font-size:13px;font-weight:600;border-radius:var(--r2);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s}
 .act-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--blue)}
 
-/* Image modal */
 .img-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;cursor:zoom-out}
 .img-modal.open{display:flex}
 .img-modal img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:var(--r);box-shadow:0 24px 80px rgba(0,0,0,.6)}
 .img-modal-close{position:absolute;top:20px;right:24px;color:#fff;font-size:28px;cursor:pointer;opacity:.7;transition:opacity .15s;line-height:1}
 .img-modal-close:hover{opacity:1}
 .canvas-img{cursor:zoom-in}
+
+/* 강도 배지 */
+.intensity-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+.ib-thorough{background:rgba(255,79,79,.12);color:var(--red)}
+.ib-normal{background:rgba(255,170,0,.12);color:var(--yellow)}
+.ib-quick{background:rgba(0,193,122,.12);color:var(--green)}
 </style>
 </head>
 <body>
@@ -186,7 +179,7 @@ select option{background:var(--surface2)}
 <header>
   <div class="logo">✦</div>
   <span class="header-title">디자인 사전 검수 에이전트</span>
-  <span class="header-badge">v7</span>
+  <span class="header-badge">v8</span>
 </header>
 
 <div class="app">
@@ -194,17 +187,24 @@ select option{background:var(--surface2)}
   <aside class="sidebar">
   <div class="sidebar-scroll">
 
+    <!-- 검수 강도 -->
     <div class="field-group">
-      <span class="field-label">디렉터 타입</span>
-      <div class="dir-grid">
-        <div class="dir-btn active" data-d="A" onclick="setDir('A')">
-          <div class="dir-letter">A</div><div class="dir-name">완성도</div><div class="dir-sub">마감·디테일</div>
+      <span class="field-label">검수 강도</span>
+      <div class="intensity-grid">
+        <div class="int-btn" data-i="thorough" onclick="setIntensity('thorough')">
+          <div class="int-icon">🔍</div>
+          <div class="int-name">꼼꼼히</div>
+          <div class="int-sub">디테일까지</div>
         </div>
-        <div class="dir-btn" data-d="B" onclick="setDir('B')">
-          <div class="dir-letter">B</div><div class="dir-name">브랜드</div><div class="dir-sub">톤·무드</div>
+        <div class="int-btn active" data-i="normal" onclick="setIntensity('normal')">
+          <div class="int-icon">⚖️</div>
+          <div class="int-name">보통</div>
+          <div class="int-sub">주요 문제 위주</div>
         </div>
-        <div class="dir-btn" data-d="C" onclick="setDir('C')">
-          <div class="dir-letter">C</div><div class="dir-name">구조</div><div class="dir-sub">가독성·위계</div>
+        <div class="int-btn" data-i="quick" onclick="setIntensity('quick')">
+          <div class="int-icon">⚡</div>
+          <div class="int-name">빠르게</div>
+          <div class="int-sub">치명적인 것만</div>
         </div>
       </div>
     </div>
@@ -228,7 +228,7 @@ select option{background:var(--surface2)}
       <textarea id="memo" placeholder="브랜드명, 화면 목적, 의도한 부분, 우려되는 점 등을 자유롭게 적어주세요&#10;&#10;예) 삼성 Galaxy S26 퀴즈 이벤트 배너. 쿠폰은 포커스된 것(왼쪽)과 아닌 것(오른쪽)으로 구분한 의도적 연출입니다."></textarea>
     </div>
 
-  </div><!-- /sidebar-scroll -->
+  </div>
   <div class="sidebar-footer">
     <div class="spec-card" id="specCard">
       <div class="spec-row"><span class="spec-key">상태</span><span class="spec-val" style="color:var(--text3)">이미지와 배너 종류를 선택하세요</span></div>
@@ -238,7 +238,6 @@ select option{background:var(--surface2)}
   </aside>
 
   <div class="main">
-
     <div class="top-pane">
       <div class="img-canvas" id="imgCanvas">
         <div class="canvas-empty" id="canvasEmpty">
@@ -264,12 +263,11 @@ select option{background:var(--surface2)}
     </div>
 
     <div class="bottom-pane" id="bottomPane"></div>
-
   </div>
 </div>
 
 <script>
-let rules={}, file=null, imgInfo=null, dir='A', lastText='', parsed=null, activeId=null;
+let rules={}, file=null, imgInfo=null, intensity='normal', lastText='', parsed=null, activeId=null;
 const $=id=>document.getElementById(id);
 const ICONS={
   tv:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
@@ -277,8 +275,29 @@ const ICONS={
   brand:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="0.5"/><circle cx="17.5" cy="10.5" r="0.5"/><circle cx="8.5" cy="7.5" r="0.5"/><circle cx="6.5" cy="12.5" r="0.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
   finish:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
 };
-const DIR_NAMES={A:'완성도 디렉터',B:'브랜드 디렉터',C:'구조 디렉터'};
-const LOADS=[['🔍 이미지 분석 중','시안을 꼼꼼히 살펴보고 있어요'],['📐 규격 기준 대조 중','사이즈와 안전영역을 확인하고 있어요'],['🎬 디렉터 기준 적용 중','선택하신 디렉터 시각으로 검수 중이에요'],['📝 리포트 생성 중','거의 다 됐어요 ✨']];
+
+const INTENSITY_CONFIG = {
+  thorough: {
+    label: '꼼꼼히',
+    badgeClass: 'ib-thorough',
+    instruction: 'Review THOROUGHLY. Check every detail including minor issues, subtle misalignments, fine typography inconsistencies, and small color deviations. Flag both critical issues AND improvement suggestions. Be comprehensive.',
+    directorType: 'A'
+  },
+  normal: {
+    label: '보통',
+    badgeClass: 'ib-normal',
+    instruction: 'Review at NORMAL depth. Focus on meaningful issues that affect quality or communication. Skip very minor details. Balance thoroughness with practicality.',
+    directorType: 'A'
+  },
+  quick: {
+    label: '빠르게',
+    badgeClass: 'ib-quick',
+    instruction: 'Review QUICKLY. Flag ONLY critical issues that would cause rejection or serious problems. Ignore minor details and improvement suggestions. Be concise.',
+    directorType: 'A'
+  }
+};
+
+const LOADS=[['🔍 이미지 분석 중','시안을 꼼꼼히 살펴보고 있어요'],['📐 규격 기준 대조 중','사이즈와 안전영역을 확인하고 있어요'],['🎬 디렉터 기준 적용 중','검수 강도 기준으로 검수 중이에요'],['📝 리포트 생성 중','거의 다 됐어요 ✨']];
 
 async function init(){
   try{
@@ -291,9 +310,9 @@ async function init(){
   }catch(e){console.warn(e)}
 }
 
-function setDir(d){
-  dir=d;
-  document.querySelectorAll('.dir-btn').forEach(b=>b.classList.toggle('active',b.dataset.d===d));
+function setIntensity(i){
+  intensity=i;
+  document.querySelectorAll('.int-btn').forEach(b=>b.classList.toggle('active',b.dataset.i===i));
 }
 
 function f2b64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f);})}
@@ -390,6 +409,7 @@ function toggleSec(id){
 
 function renderBottom(p){
   const vcls=vc(p.verdict);
+  const cfg=INTENSITY_CONFIG[intensity];
   const summary=(p.summary||[]).map(s=>`<div class="sum-item"><div class="sum-dot"></div><span>${s}</span></div>`).join('');
   const sections=(p.sections||[]).map(s=>{
     const refs=(s.markerIds||[]).map(mid=>{
@@ -423,7 +443,7 @@ function renderBottom(p){
     <div class="verdict-sec">
       <div class="verdict-row">
         <div class="v-pill ${vcls}"><div class="v-dot"></div><span class="v-text">${p.verdict}</span></div>
-        <span class="v-dir">${DIR_NAMES[dir]} 기준</span>
+        <span class="v-dir"><span class="intensity-badge ${cfg.badgeClass}">${cfg.label}</span> 기준 검수</span>
       </div>
       ${summary?`<div class="sum-list">${summary}</div>`:''}
     </div>
@@ -441,6 +461,7 @@ function renderBottom(p){
 
 async function startReview(){
   const spec=checkSpec(); if(!spec)return;
+  const cfg=INTENSITY_CONFIG[intensity];
   $('canvasEmpty').style.display='none';
   $('canvasImg').style.display='none';
   $('canvasLoading').style.display='flex';
@@ -458,7 +479,10 @@ async function startReview(){
       imageBase64:b64,mimeType:file.type,reviewType:$('bannerType').value,
       brandName:'',purpose:'',benefit:'',cta:'',
       memo:$('memo').value,
-      specCheck:spec,directorType:dir
+      specCheck:spec,
+      directorType:cfg.directorType,
+      intensityLevel:intensity,
+      intensityInstruction:cfg.instruction
     })});
     const text=await res.text();
     clearInterval(timer);
@@ -508,7 +532,6 @@ function resetView(){
   $('canvasEmpty').style.display=file?'none':'flex';
 }
 
-
 function openModal(){
   const src=$('canvasImg').src;
   if(!src||src===window.location.href)return;
@@ -525,7 +548,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 init();
 </script>
 
-<!-- Image modal -->
 <div class="img-modal" id="imgModal" onclick="closeModal()">
   <span class="img-modal-close" onclick="closeModal()">✕</span>
   <img id="modalImg" src="" alt="원본 이미지" onclick="event.stopPropagation()"/>
