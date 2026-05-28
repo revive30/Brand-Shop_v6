@@ -36,6 +36,12 @@ Spec check (for reference only):
 
 IMPORTANT SAFE AREA RULE: Only flag safe area violations when CORE ELEMENTS (main text, key visuals, CTA buttons, product images) are outside the safe zone. Background decorations, gradients, and ornamental elements extending beyond the safe area are ACCEPTABLE and should NOT be flagged as errors.` : '';
 
+    // ✅ directorGuidelines: JSON 전역 디렉터 기준 주입
+    const directorGuidelines = specCheck?.expected?.directorGuidelines || specCheck?.directorGuidelines;
+    const directorGuidelineText = (Array.isArray(directorGuidelines) && directorGuidelines.length > 0)
+      ? `\nDirector Guidelines (MUST follow these when reviewing — these override generic design conventions):\n${directorGuidelines.map((g, i) => `${i + 1}. ${g}`).join('\n')}`
+      : '';
+
     // ✅ designNotes: JSON에서 넘어온 배너별 디자인 룰을 프롬프트에 주입
     const designNotes = specCheck?.expected?.designNotes;
     const designNoteText = (Array.isArray(designNotes) && designNotes.length > 0)
@@ -56,6 +62,7 @@ Design info:
 - CTA: ${cta || 'unknown'}
 - Designer notes: ${memo || 'none'}
 ${specNote}
+${directorGuidelineText}
 ${designNoteText}
 
 REVIEW GUIDELINES:
@@ -67,6 +74,9 @@ REVIEW GUIDELINES:
 6. Be specific about what you see in the actual image.
 7. Markers should point to actual problem areas you can see in the image.
 8. If design rules are provided above, actively check each rule and flag violations.
+9. CRITICAL — Font size: Do NOT flag font sizes that are within the allowed TV range (minimum 16pt, realistic minimum 20pt, body 28-36pt, title 60-80pt). Only flag if clearly too small even by TV minimum standards.
+10. CRITICAL — Designer intent: If a design choice appears intentional (mixed styles, perspective breaks, bold color), consider it may be deliberate before flagging.
+11. CRITICAL — Distinguish between fatal issues (치명 리스크) and improvement suggestions (개선 권장). Do not treat every imperfection as critical.
 
 Return ONLY a valid JSON object. No markdown, no code fences.
 
