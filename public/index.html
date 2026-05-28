@@ -377,12 +377,24 @@ function renderMarkers(markers){
   $('mkLegend').style.display='flex';
   const {ox,oy,rw,rh}=getImgRect();
   const COLS=7, ROWS=7;
+  const placed=[];
   markers.forEach(m=>{
     const el=document.createElement('div');
     const col=Math.min(Math.max(m.col||1,1),COLS);
     const row=Math.min(Math.max(m.row||1,1),ROWS);
-    const px=ox + rw * ((col - 0.5) / COLS);
-    const py=oy + rh * ((row - 0.5) / ROWS);
+    let px=ox + rw * ((col - 0.5) / COLS);
+    let py=oy + rh * ((row - 0.5) / ROWS);
+    // 겹침 방지: 이미 배치된 마커와 너무 가까우면 밀어냄
+    const MIN_DIST=36;
+    let attempts=0;
+    while(attempts<20){
+      const clash=placed.find(p=>Math.hypot(p.x-px,p.y-py)<MIN_DIST);
+      if(!clash)break;
+      px+=MIN_DIST*0.8;
+      if(px>ox+rw){px=ox+rw*(((col-0.5)/COLS));py+=MIN_DIST*0.8;}
+      attempts++;
+    }
+    placed.push({x:px,y:py});
     el.className=`mk mk-${m.severity}`;
     el.style.cssText=`left:${px}px;top:${py}px`;
     el.dataset.id=m.id;
