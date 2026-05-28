@@ -367,10 +367,14 @@ function renderMarkers(markers){
   const layer=$('mkLayer'); layer.innerHTML='';
   if(!markers?.length)return;
   const {ox,oy,rw,rh}=getImgRect();
+  const COLS=5, ROWS=5;
   markers.forEach(m=>{
     const el=document.createElement('div');
-    const px=ox+rw*(m.x/100);
-    const py=oy+rh*(m.y/100);
+    // col/row 기반 (1~5), 셀 중앙에 마커 배치
+    const col=Math.min(Math.max(m.col||1,1),COLS);
+    const row=Math.min(Math.max(m.row||1,1),ROWS);
+    const px=ox + rw * ((col - 0.5) / COLS);
+    const py=oy + rh * ((row - 0.5) / ROWS);
     el.className=`mk mk-${m.severity}`;
     el.style.cssText=`left:${px}px;top:${py}px`;
     el.dataset.id=m.id;
