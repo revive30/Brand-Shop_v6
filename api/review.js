@@ -71,7 +71,7 @@ FOCUS ON these 3 areas with detailed analysis:
 DO NOT comment on: alignment details, spacing measurements, font sizes, QR codes, confirm buttons, navigation arrows.
 If nothing is wrong in a section, say 양호 — but still fill in the "reason" field explaining why it looks good. Do not manufacture problems.
 
-For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom). Only place on genuinely visible problems.
+For markers: 10x10 grid (col 1-10 left→right, row 1-10 top→bottom). IMPORTANT: For each marker, first identify the specific element you flagged as a problem, then look at where that element actually appears in the image, and place the marker at that exact grid position. Do not guess — look at the element you just described.
 
 Return ONLY valid JSON:
 {
@@ -110,7 +110,7 @@ If their left edges or starting positions are inconsistent, flag it as an alignm
 DO NOT comment on: TV environment, brand strategy, information quantity, QR codes, buttons.
 If nothing is wrong, say 양호 — but still fill in the "reason" field explaining why it looks good. Do not manufacture problems.
 
-For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom). Mark the exact area with the alignment/quality issue.
+For markers: 10x10 grid (col 1-10 left→right, row 1-10 top→bottom). IMPORTANT: For each marker, first identify the specific element you flagged as a problem, then look at where that element actually appears in the image, and place the marker at that exact grid position. Do not guess — look at the element you just described.
 
 Return ONLY valid JSON:
 {
@@ -224,7 +224,7 @@ All text in Korean.`;
 
     const markers1 = normalizeMarkers(p1?.markers_pass1);
     const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length }));
-    const markers3 = []; // 안전영역은 마커 없음
+    const markers3 = p3 ? [{ id: markers1.length + markers2.length + 1, col: 1, row: 1, severity: p3?.sections_pass3?.[0]?.verdict === '양호' ? 'info' : 'warning', label: '안전영역', comment: p3?.sections_pass3?.[0]?.problem || '안전영역 확인' }] : [];
     const allMarkers = [...markers1, ...markers2, ...markers3];
 
     // sections의 markerIds도 offset 적용
@@ -232,7 +232,7 @@ All text in Korean.`;
       if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length);
     });
     (p3?.sections_pass3 || []).forEach(s => {
-      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length + markers2.length);
+      if (s.markerIds !== undefined) s.markerIds = markers3.map(m => m.id);
     });
 
     // 전체 verdict 계산
