@@ -63,13 +63,13 @@ ${specNote}
 ${directorGuidelineText}
 ${designNoteText}
 
-FOCUS ON:
-1. TV 시청 환경 적합성 — 3m 거리에서 한눈에 읽히는가, 텍스트 양이 적절한가
-2. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가
-3. 정보 전달 & 위계 — 핵심 메시지가 명확한가, 시선 흐름이 자연스러운가
+FOCUS ON these 3 areas with detailed analysis:
+1. TV 시청 환경 적합성 — 3m 거리에서 한눈에 읽히는가, 텍스트 양이 적절한가, 레이아웃이 단순하고 명확한가
+2. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가, 색감·무드·톤앤매너가 어울리는가, 이벤트 성격과 비주얼이 맞는가. 양호여도 구체적으로 어떤 점이 잘 됐는지 설명할 것.
+3. 정보 전달 & 위계 — 핵심 메시지가 명확한가, 시선 흐름이 자연스러운가, 타이틀·본문·부가정보 위계가 느껴지는가
 
 DO NOT comment on: alignment details, spacing measurements, font sizes, QR codes, confirm buttons, navigation arrows.
-If nothing is wrong in a section, say 양호. Do not manufacture feedback.
+If nothing is wrong in a section, say 양호 — but still fill in the "reason" field explaining why it looks good. Do not manufacture problems.
 
 For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom). Only place on genuinely visible problems.
 
@@ -108,7 +108,7 @@ FOCUS ONLY ON visual finish and alignment:
 IMPORTANT: Look very carefully at repeated elements (bullet points, check marks, list items). 
 If their left edges or starting positions are inconsistent, flag it as an alignment issue.
 DO NOT comment on: TV environment, brand tone, information hierarchy, QR codes, buttons.
-If nothing is wrong, say 양호. Do not manufacture feedback.
+If nothing is wrong, say 양호 — but still fill in the "reason" field explaining why it looks good. Do not manufacture problems.
 
 For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom). Mark the exact area with the alignment/quality issue.
 
