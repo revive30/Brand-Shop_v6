@@ -281,13 +281,14 @@ function checkSpec(){
   const overlayImg = $('overlayImg');
   if(spec.overlay){
     overlayImg.src = spec.overlay;
+    overlayImg.style.display = 'block';
     overlayBtn.style.display = 'block';
-    overlayImg.style.display = 'none';
-    overlayBtn.textContent = '안전영역 보기';
-    overlayBtn.classList.remove('active');
+    overlayBtn.textContent = '안전영역 숨기기';
+    overlayBtn.classList.add('active');
   } else {
     overlayBtn.style.display = 'none';
     overlayImg.style.display = 'none';
+    overlayImg.src = '';
   }
 
   return{type,actual:{width:imgInfo.w,height:imgInfo.h,mime:file.type,kb},expected:spec,result:{sizeOk,fmtOk}};
@@ -396,7 +397,6 @@ function renderBottom(p){
       <div class="sec-body" id="sb-${s.id}">
         ${refs?`<div class="mk-refs">${refs}</div>`:''}
         ${s.problem?`<div class="d-block"><div class="d-label">문제</div><div class="d-text">${s.problem}</div></div>`:s.verdict==='양호'?`<div class="d-text" style="color:var(--green);font-size:13px">✓ 문제 없음</div>`:''}
-        ${s.reason?`<div class="d-block"><div class="d-label">이유</div><div class="d-text">${s.reason}</div></div>`:''}
         ${s.reason?`<div class="d-block"><div class="d-label">이유</div><div class="d-text">${s.reason}</div></div>`:''}
         ${s.suggestion?`<div class="d-suggest">${s.suggestion}</div>`:''}
       </div>
