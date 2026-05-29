@@ -5,27 +5,18 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
-    const { imageBase64, mimeType, reviewType, brandName, purpose, benefit, cta, memo, specCheck, directorType, intensityLevel, intensityInstruction } = req.body || {};
+    const { imageBase64, mimeType, reviewType, brandName, purpose, benefit, cta, memo, specCheck, perspectiveKey } = req.body || {};
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
-    const directorProfiles = {
-      A: {
-        name: '완성도 디렉터',
-        persona: '10년 경력의 시니어 디자인 디렉터. 픽셀 단위 마감감과 합성 품질에 극도로 예민하다. "이 시안을 지금 당장 TV에 올려도 부끄럽지 않은가?"가 기준이다. 정렬이 어긋나거나 합성이 어색하면 즉시 리턴한다. 단순히 규칙을 체크하는 것이 아니라 전체 완성도의 "급"을 본다.',
-        priority: '완성도와 마감감. 정렬, 간격, 합성 품질, 그림자 처리, 누끼, 텍스트-이미지 관계. 브랜드 톤보다 "완성된 느낌의 급"을 우선시한다.'
-      },
-      B: {
-        name: '브랜드 디렉터',
-        persona: '브랜드 전략과 비주얼 아이덴티티 전문가. "이 화면에서 브랜드가 즉각적으로 느껴지는가?"가 기준이다. 색감, 무드, 톤앤매너에 극도로 예민하다. 프리미엄 브랜드가 저가 프로모션처럼 보이거나, 브랜드 개성 없이 안전하게만 만들어진 시안은 절대 통과시키지 않는다.',
-        priority: '브랜드 톤과 감도. 색감, 무드, 키비주얼 존재감, 브랜드 아이덴티티 표현력. "브랜드답게 느껴지는가"를 완성도보다 우선시한다.'
-      },
-      C: {
-        name: '구조 디렉터',
-        persona: 'TV UX와 정보 설계 전문가. "3미터 거리에서 리모컨을 들고 서 있는 시청자가 5초 안에 핵심을 파악할 수 있는가?"가 기준이다. 텍스트가 조금이라도 많거나, CTA가 약하거나, 시선이 분산되면 즉시 리턴한다.',
-        priority: 'TV 시청 환경 적합성과 정보 위계. 한눈에 읽히는가, CTA가 명확한가, 핵심 메시지가 3초 안에 전달되는가.'
-      }
-    };
-    const dp = directorProfiles[directorType] || directorProfiles.A;
+    // ✅ design-guide-rules.json 로드 (directorGuidelines 계층 구조 포함)
+    let rulesData = {};
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const rulesPath = path.join(process.cwd(), 'public', 'rules', 'design-guide-rules.json');
+      rulesData = JSON.parse(fs.readFileSync(rulesPath, 'utf-8'));
+    } catch(e) { console.warn('rules load failed:', e.message); }
+
 
     const specNote = specCheck ? `
 Spec check (for reference only):
@@ -36,16 +27,24 @@ Spec check (for reference only):
 
 IMPORTANT SAFE AREA RULE: Only flag safe area violations when CORE ELEMENTS (main text, key visuals, CTA buttons, product images) are outside the safe zone. Background decorations, gradients, and ornamental elements extending beyond the safe area are ACCEPTABLE and should NOT be flagged as errors.` : '';
 
-    // ✅ intensityInstruction: 검수 강도 지시
-    const intensityNote = intensityInstruction
-      ? `\nReview intensity: ${intensityInstruction}`
-      : '';
+    // ✅ directorGuidelines: 관점별 기준 주입
+    const dg = rulesData?.directorGuidelines;
+    const pKey = perspectiveKey || '디자이너';
+    const perspectiveLabels = { '디자이너': 'Designer', '마케터': 'Marketer', '디렉터': 'Director' };
 
-    // ✅ directorGuidelines: JSON 전역 디렉터 기준 주입
-    const directorGuidelines = specCheck?.expected?.directorGuidelines || specCheck?.directorGuidelines;
-    const directorGuidelineText = (Array.isArray(directorGuidelines) && directorGuidelines.length > 0)
-      ? `\nDirector Guidelines (MUST follow these when reviewing — these override generic design conventions):\n${directorGuidelines.map((g, i) => `${i + 1}. ${g}`).join('\n')}`
-      : '';
+    let directorGuidelineText = '';
+    if (dg) {
+      const forbidden = dg['공통_절대금지'] || [];
+      const perspective = dg[pKey] || {};
+      const viewpoint = perspective['관점'] || '';
+      const criteria = perspective['기준'] || [];
+
+      directorGuidelineText = [
+        forbidden.length ? `\nABSOLUTE RULES (never violate these under any circumstances):\n${forbidden.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
+        viewpoint ? `\nREVIEW PERSPECTIVE — ${perspectiveLabels[pKey] || pKey}: ${viewpoint}` : '',
+        criteria.length ? `\nEVALUATION CRITERIA for this perspective:\n${criteria.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
+      ].filter(Boolean).join('\n');
+    }
 
     // ✅ designNotes: JSON에서 넘어온 배너별 디자인 룰을 프롬프트에 주입
     const designNotes = specCheck?.expected?.designNotes;
@@ -59,7 +58,6 @@ Design info:
 - Banner type: ${reviewType || 'unknown'}
 - Brand: ${brandName || 'unknown'}
 - Designer notes: ${memo || 'none'}
-${intensityNote}
 ${directorGuidelineText}
 ${designNoteText}
 
