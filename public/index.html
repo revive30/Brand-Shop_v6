@@ -166,16 +166,16 @@ select option{background:var(--surface2)}
   <aside class="sidebar">
   <div class="sidebar-scroll">
     <div class="field-group">
-      <span class="field-label">검수 강도</span>
+      <span class="field-label">검수 관점</span>
       <div class="intensity-grid">
-        <div class="int-btn" data-i="thorough" onclick="setIntensity('thorough')">
-          <div class="int-icon">🔍</div><div class="int-name">꼼꼼히</div><div class="int-sub">디테일까지</div>
+        <div class="int-btn active" data-i="designer" onclick="setPerspective('designer')">
+          <div class="int-icon">✏️</div><div class="int-name">디자이너</div><div class="int-sub">완성도·센스</div>
         </div>
-        <div class="int-btn active" data-i="normal" onclick="setIntensity('normal')">
-          <div class="int-icon">⚖️</div><div class="int-name">보통</div><div class="int-sub">주요 문제 위주</div>
+        <div class="int-btn" data-i="marketer" onclick="setPerspective('marketer')">
+          <div class="int-icon">📣</div><div class="int-name">마케터</div><div class="int-sub">메시지·전달력</div>
         </div>
-        <div class="int-btn" data-i="quick" onclick="setIntensity('quick')">
-          <div class="int-icon">⚡</div><div class="int-name">빠르게</div><div class="int-sub">치명적인 것만</div>
+        <div class="int-btn" data-i="director" onclick="setPerspective('director')">
+          <div class="int-icon">🎬</div><div class="int-name">디렉터</div><div class="int-sub">브랜드·퀄리티</div>
         </div>
       </div>
     </div>
@@ -237,7 +237,7 @@ select option{background:var(--surface2)}
   </div>
 </div>
 <script>
-let rules={}, file=null, imgInfo=null, intensity='normal', lastText='', parsed=null, activeId=null;
+let rules={}, file=null, imgInfo=null, perspective='designer', lastText='', parsed=null, activeId=null;
 const $=id=>document.getElementById(id);
 const ICONS={
   tv:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
@@ -245,16 +245,16 @@ const ICONS={
   brand:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="0.5"/><circle cx="17.5" cy="10.5" r="0.5"/><circle cx="8.5" cy="7.5" r="0.5"/><circle cx="6.5" cy="12.5" r="0.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
   finish:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
 };
-const INTENSITY_CONFIG={
-  thorough:{label:'꼼꼼히',badgeClass:'ib-thorough',instruction:'Review THOROUGHLY. Check every detail including minor issues, subtle misalignments, fine typography inconsistencies, and small color deviations. Flag both critical issues AND improvement suggestions. Be comprehensive.',directorType:'A'},
-  normal:{label:'보통',badgeClass:'ib-normal',instruction:'Review at NORMAL depth. Focus on meaningful issues that affect quality or communication. Skip very minor details. Balance thoroughness with practicality.',directorType:'A'},
-  quick:{label:'빠르게',badgeClass:'ib-quick',instruction:'Review QUICKLY. Flag ONLY critical issues that would cause rejection or serious problems. Ignore minor details and improvement suggestions. Be concise.',directorType:'A'}
+const PERSPECTIVE_CONFIG={
+  designer:{label:'디자이너 관점',badgeClass:'ib-thorough',key:'디자이너'},
+  marketer:{label:'마케터 관점',badgeClass:'ib-normal',key:'마케터'},
+  director:{label:'디렉터 관점',badgeClass:'ib-quick',key:'디렉터'}
 };
 const LOADS=[['🔍 이미지 분석 중','시안을 꼼꼼히 살펴보고 있어요'],['📐 규격 기준 대조 중','사이즈와 안전영역을 확인하고 있어요'],['🎬 디렉터 기준 적용 중','검수 강도 기준으로 검수 중이에요'],['📝 리포트 생성 중','거의 다 됐어요 ✨']];
 async function init(){
   try{const r=await fetch('/rules/design-guide-rules.json');rules=await r.json();Object.keys(rules.items||{}).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;$('bannerType').appendChild(o);})}catch(e){console.warn(e)}
 }
-function setIntensity(i){intensity=i;document.querySelectorAll('.int-btn').forEach(b=>b.classList.toggle('active',b.dataset.i===i));}
+function setPerspective(p){perspective=p;document.querySelectorAll('.int-btn').forEach(b=>b.classList.toggle('active',b.dataset.i===p));}
 function f2b64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f);})}
 function getImgInfo(f){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res({w:i.naturalWidth,h:i.naturalHeight});i.onerror=rej;i.src=URL.createObjectURL(f);})}
 function checkSpec(){
@@ -347,7 +347,7 @@ function toggleSec(id){
 }
 function renderBottom(p){
   const vcls=vc(p.verdict);
-  const cfg=INTENSITY_CONFIG[intensity];
+  const cfg=PERSPECTIVE_CONFIG[perspective]||PERSPECTIVE_CONFIG.designer;
   const sections=(p.sections||[]).map(s=>{
     const refs=(s.markerIds||[]).map(mid=>{
       const m=p.markers?.find(x=>x.id===mid);
@@ -388,7 +388,7 @@ function renderBottom(p){
 }
 async function startReview(){
   const spec=checkSpec();if(!spec)return;
-  const cfg=INTENSITY_CONFIG[intensity];
+  const cfg=PERSPECTIVE_CONFIG[perspective]||PERSPECTIVE_CONFIG.designer;
   $('canvasEmpty').style.display='none';$('canvasImg').style.display='none';
   $('canvasLoading').style.display='flex';$('mkLayer').innerHTML='';
   $('cpList').innerHTML='<div class="cp-empty">검수 중이에요</div>';
@@ -400,7 +400,7 @@ async function startReview(){
     const res=await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       imageBase64:b64,mimeType:file.type,reviewType:$('bannerType').value,
       brandName:'',purpose:'',benefit:'',cta:'',memo:$('memo').value,
-      specCheck:spec,directorType:cfg.directorType,intensityLevel:intensity,intensityInstruction:cfg.instruction
+      specCheck:spec,perspectiveKey:cfg.key
     })});
     const text=await res.text();clearInterval(timer);
     if(!res.ok){let msg=text;try{msg=JSON.parse(text)?.error||text}catch(e){}throw new Error(msg);}
