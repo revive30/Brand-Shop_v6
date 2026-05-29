@@ -168,7 +168,7 @@ All text in Korean.`;
       ...(p2?.sections_pass2 || [])
     ];
 
-    // 마커 ID 중복 방지 (2번 호출 마커 ID를 이어서)
+    // 마커 ID 중복 방지
     const markers1 = p1?.markers_pass1 || [];
     const offset = markers1.length;
     const markers2 = (p2?.markers_pass2 || []).map(m => ({ ...m, id: m.id + offset }));
@@ -187,19 +187,23 @@ All text in Korean.`;
 
     // 우선순위 항목
     const priorities = allSections
-      .filter(s => s.verdict !== '양호')
+      .filter(s => s.verdict !== '양호' && s.problem)
       .sort((a,b) => (verdictPriority[b.verdict]||0) - (verdictPriority[a.verdict]||0))
       .slice(0, 3)
-      .map(s => s.problem || s.title);
+      .map(s => s.problem);
+
+    // finalComment — 문제 있는 섹션들의 suggestion 조합
+    const problemSections = allSections.filter(s => s.verdict !== '양호' && s.suggestion);
+    const finalComment = problemSections.length > 0
+      ? problemSections.map(s => s.suggestion).join(' ')
+      : '전체적으로 양호한 시안입니다.';
 
     const parsed = {
       verdict: worstVerdict,
       markers: allMarkers,
       sections: allSections,
       priorities,
-      finalComment: allSections.filter(s => s.verdict !== '양호').length === 0
-        ? '전체적으로 양호한 시안입니다.'
-        : `${allSections.filter(s=>s.verdict==='치명 리스크').length > 0 ? '치명적인 문제가 있습니다. ' : ''}주요 수정 항목을 확인해주세요.`
+      finalComment
     };
 
     const combinedText = JSON.stringify(parsed);
