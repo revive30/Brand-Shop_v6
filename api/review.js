@@ -68,10 +68,10 @@ WHAT YOU CAN AND CANNOT DO:
 - You CAN judge: overall mood, brand tone, visual hierarchy, whether information reads clearly at a glance, obvious quality issues (bad compositing, clashing colors, cluttered layout).
 
 REVIEW SCOPE — only judge these 4 things:
-1. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가
-2. 정보 전달 — 핵심 메시지가 한눈에 읽히는가, 시선 흐름이 자연스러운가
-3. 시각적 완성도 — 명백히 어색한 합성, 색상 충돌, 지저분한 레이아웃이 있는가
-4. 텍스트 위계 — 타이틀·본문·부가정보의 크기·굵기 위계가 느껴지는가
+1. TV 시청 환경 적합성 — 3m 거리에서 핵심 메시지가 한눈에 읽히는가, 텍스트 양이 TV에 적절한가, 전체 레이아웃이 단순하고 명확한가. 단, 안전영역 수치·폰트 pt·QR·버튼 템플릿·네비게이션 UI는 절대 판단하지 않는다.
+2. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가
+3. 정보 전달 & 위계 — 핵심 메시지가 한눈에 읽히는가, 시선 흐름이 자연스러운가, 타이틀·본문·부가정보 위계가 느껴지는가
+4. 시각적 완성도 — 명백히 어색한 합성, 색상 충돌, 지저분한 레이아웃이 있는가
 
 STRICT RULES:
 - Do NOT comment on: safe area, pixel alignment, font pt sizes, QR codes, navigation arrows, confirm/close buttons, template UI elements, file size.
@@ -92,6 +92,7 @@ Return ONLY a valid JSON object. No markdown, no code fences.
     {"id": 1, "col": 3, "row": 2, "severity": "warning", "label": "레이블", "comment": "구체적으로 눈에 보이는 문제 2문장"}
   ],
   "sections": [
+    {"id": "tv", "title": "TV 시청 환경 적합성", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []},
     {"id": "brand", "title": "브랜드 톤 & 무드", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []},
     {"id": "hierarchy", "title": "정보 전달 & 위계", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []},
     {"id": "finish", "title": "시각적 완성도", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []}
