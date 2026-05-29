@@ -148,39 +148,32 @@ All text in Korean.`;
     let call3 = null;
     if (overlayBase64) {
       const overlayContent = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: overlayBase64 } };
-      const prompt3 = `You are reviewing a TV banner design for safe area compliance.
+      const prompt3 = `You are reviewing a TV banner for safe area compliance.
 
 I am giving you TWO images:
-1. First image: the actual design (시안)
-2. Second image: the safe area overlay
+1. First image: the actual design
+2. Second image: safe area overlay — RED border around edges = danger zone, BLACK center = safe zone
 
-In the overlay image:
-- The RED border area around the edges = DANGER ZONE (outside safe area)
-- The BLACK center area = SAFE ZONE (inside safe area)
+Your job is simple: Look at the first image and the second image together.
+Ask yourself: "Are any core elements of the design touching or overlapping the RED border area?"
 
-Look at the FIRST image (the actual design) and check if any core elements are placed where the RED border would be in the second image.
+CORE elements to check: main title text, body text, product images, key information.
+IGNORE: background, gradients, decorative elements, navigation arrows (left/right chevrons).
 
-Safe area boundary reference: approximately 80px from left/right edges, 60px from top/bottom edges of the 1920x1080 canvas.
+Navigation arrows (< >) are UI elements — even if they touch the red area, do NOT flag them.
 
-ONLY flag if these CORE ELEMENTS are clearly outside the safe zone:
-- Main title text
-- Body text / bullet points  
-- Key product images
-- Important information (dates, prices, benefits)
+If core elements are clearly inside the black center area and NOT touching the red border → verdict 양호.
+Only flag if a core element is visibly touching or inside the red border area.
 
-DO NOT flag: background images, gradients, decorative elements, navigation arrows, confirm buttons.
+DO NOT place any markers. Text judgment only.
 
-DO NOT place any markers. This section uses text judgment only.
-No markers needed — just judge whether core elements are inside or outside the safe zone.
-
-Return ONLY valid JSON with NO markers:
+Return ONLY valid JSON:
 {
   "sections_pass3": [
     {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
   ]
 }
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
-severity values: critical, warning, info
 All text in Korean.`;
 
       call3 = fetch('https://api.anthropic.com/v1/messages', {
