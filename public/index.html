@@ -96,8 +96,6 @@ select option{background:var(--surface2)}
 .cp-text{font-size:12px;color:var(--text2);line-height:1.6}
 .cp-empty{padding:2.5rem 1.5rem;text-align:center;color:var(--text3);font-size:13px;line-height:1.9}
 .bottom-pane{flex:1;overflow-y:auto}
-/* 결과 상단 바 */
-.result-topbar{display:flex;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface);flex-wrap:wrap}
 .v-pill{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;border:1px solid transparent}
 .vp-danger{background:var(--red-dim);border-color:var(--red-border);color:var(--red)}
 .vp-warn{background:var(--yellow-dim);border-color:var(--yellow-border);color:var(--yellow)}
@@ -377,10 +375,6 @@ function renderBottom(p){
   }).join('');
   const prios=(p.priorities||[]).map((t,i)=>`<div class="prio-item"><span class="prio-num pn${i+1}">${i+1}</span><span>${t}</span></div>`).join('');
   const _html=`
-    <div class="result-topbar">
-      <div class="v-pill ${vcls}"><div class="v-dot"></div><span class="v-text">${p.verdict}</span></div>
-      <span class="v-dir"><span class="intensity-badge ${cfg.badgeClass}">${cfg.label}</span> 기준 검수</span>
-    </div>
     <div class="sections-sec">${sections}</div>
     <div class="bottom-cards">
       ${prios?`<div class="b-card"><div class="b-card-title">우선 수정 항목</div>${prios}</div>`:'<div></div>'}
