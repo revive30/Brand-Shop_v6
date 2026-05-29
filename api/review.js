@@ -147,22 +147,17 @@ All text in Korean.`;
       const overlayContent = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: overlayBase64 } };
       const prompt3 = `You are reviewing a TV banner for safe area compliance.
 
-I am giving you TWO images:
-1. First image: the actual design
-2. Second image: safe area overlay — RED border around edges = danger zone, BLACK center = safe zone
+The image I'm giving you is the actual design with a safe area overlay already merged on top.
+- RED border areas around the edges = outside the safe zone
+- The center area = inside the safe zone
 
-Your job is simple: Look at the first image and the second image together.
-Ask yourself: "Are any core elements of the design touching or overlapping the RED border area?"
+Look at this single merged image and judge:
+Are any CORE ELEMENTS touching or overlapping the RED border areas?
 
-CORE elements to check: main title text, body text, product images, key information.
-IGNORE: background, gradients, decorative elements, navigation arrows (left/right chevrons).
+CORE elements: main title text, body text, bullet points, product images, key information.
+IGNORE: background, gradients, decorative elements, left/right navigation arrows (< >), confirm buttons.
 
-Navigation arrows (< >) are UI elements — even if they touch the red area, do NOT flag them.
-
-If core elements are clearly inside the black center area and NOT touching the red border → verdict 양호.
-Only flag if a core element is visibly touching or inside the red border area.
-
-DO NOT place any markers. Text judgment only.
+Be strict — if text or key visuals are visibly touching the red border, flag it.
 
 Return ONLY valid JSON:
 {
@@ -178,7 +173,10 @@ All text in Korean.`;
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
           model, max_tokens: 1000, system: systemPrompt,
-          messages: [{ role: 'user', content: [imageContent, overlayContent, { type: 'text', text: prompt3 }] }]
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
+            { type: 'text', text: prompt3 }
+          ]}]
         })
       });
     }
