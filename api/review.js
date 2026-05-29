@@ -5,10 +5,10 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
-    const { imageBase64, mimeType, reviewType, brandName, purpose, benefit, cta, memo, specCheck, perspectiveKey } = req.body || {};
+    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, perspectiveKey } = req.body || {};
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
-    // ✅ design-guide-rules.json 로드 (directorGuidelines 계층 구조 포함)
+    // ✅ design-guide-rules.json 로드
     let rulesData = {};
     try {
       const fs = await import('fs');
@@ -17,17 +17,14 @@ export default async function handler(req, res) {
       rulesData = JSON.parse(fs.readFileSync(rulesPath, 'utf-8'));
     } catch(e) { console.warn('rules load failed:', e.message); }
 
-
     const specNote = specCheck ? `
-Spec check (for reference only):
+Spec check:
 - Size: ${specCheck.actual?.width}x${specCheck.actual?.height} (standard: ${specCheck.expected?.width || 'flexible'}x${specCheck.expected?.height})
-- Format: ${specCheck.actual?.mime} 
-- File size: ${specCheck.actual?.kb}KB (NOTE: this is a preview/thumbnail file, NOT the actual submission file. Do NOT flag file size as an issue.)
 - Safe area: ${specCheck.expected?.safeArea}
+- File size shown is a preview thumbnail — do NOT flag it.
+- Safe area: only flag CORE ELEMENTS (main text, key visuals) outside safe zone. Background/decorations are fine.` : '';
 
-IMPORTANT SAFE AREA RULE: Only flag safe area violations when CORE ELEMENTS (main text, key visuals, CTA buttons, product images) are outside the safe zone. Background decorations, gradients, and ornamental elements extending beyond the safe area are ACCEPTABLE and should NOT be flagged as errors.` : '';
-
-    // ✅ directorGuidelines: 관점별 기준 주입
+    // ✅ 관점별 가이드 주입
     const dg = rulesData?.directorGuidelines;
     const pKey = perspectiveKey || '디자이너';
     const perspectiveLabels = { '디자이너': 'Designer', '마케터': 'Marketer', '디렉터': 'Director' };
@@ -38,117 +35,177 @@ IMPORTANT SAFE AREA RULE: Only flag safe area violations when CORE ELEMENTS (mai
       const perspective = dg[pKey] || {};
       const viewpoint = perspective['관점'] || '';
       const criteria = perspective['기준'] || [];
-
       directorGuidelineText = [
-        forbidden.length ? `\nABSOLUTE RULES (never violate these under any circumstances):\n${forbidden.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
+        forbidden.length ? `\nABSOLUTE RULES (never violate):\n${forbidden.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
         viewpoint ? `\nREVIEW PERSPECTIVE — ${perspectiveLabels[pKey] || pKey}: ${viewpoint}` : '',
-        criteria.length ? `\nEVALUATION CRITERIA for this perspective:\n${criteria.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
+        criteria.length ? `\nEVALUATION CRITERIA:\n${criteria.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
       ].filter(Boolean).join('\n');
     }
 
-    // ✅ designNotes: JSON에서 넘어온 배너별 디자인 룰을 프롬프트에 주입
     const designNotes = specCheck?.expected?.designNotes;
     const designNoteText = (Array.isArray(designNotes) && designNotes.length > 0)
-      ? `\nDesign rules for this banner type (from official guide):\n${designNotes.map((n, i) => `${i + 1}. ${n}`).join('\n')}\nThese are mandatory rules. Check whether the submitted design follows each of them.`
+      ? `\nBanner-specific rules:\n${designNotes.map((n,i)=>`${i+1}. ${n}`).join('\n')}`
       : '';
 
-    const prompt = `You are a senior TV design director reviewing a design draft.
+    const imageContent = { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } };
+    const systemPrompt = 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble.';
+
+    // ============================
+    // 1번 호출: 무드·브랜드톤·정보전달·TV환경
+    // ============================
+    const prompt1 = `You are a senior TV design director. Review the OVERALL design.
 
 Design info:
 - Banner type: ${reviewType || 'unknown'}
 - Brand: ${brandName || 'unknown'}
 - Designer notes: ${memo || 'none'}
+${specNote}
 ${directorGuidelineText}
 ${designNoteText}
 
-WHAT YOU CAN AND CANNOT DO:
-- You are looking at a screenshot. You CANNOT measure pixel values, safe area boundaries, font pt sizes, or identify UI templates.
-- You CAN judge: overall mood, brand tone, visual hierarchy, whether information reads clearly at a glance, obvious quality issues (bad compositing, clashing colors, cluttered layout).
-
-REVIEW SCOPE — only judge these 4 things:
-1. TV 시청 환경 적합성 — 3m 거리에서 핵심 메시지가 한눈에 읽히는가, 텍스트 양이 TV에 적절한가, 전체 레이아웃이 단순하고 명확한가. 단, 안전영역 수치·폰트 pt·QR·버튼 템플릿·네비게이션 UI는 절대 판단하지 않는다.
+FOCUS ON:
+1. TV 시청 환경 적합성 — 3m 거리에서 한눈에 읽히는가, 텍스트 양이 적절한가
 2. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가
-3. 정보 전달 & 위계 — 핵심 메시지가 한눈에 읽히는가, 시선 흐름이 자연스러운가, 타이틀·본문·부가정보 위계가 느껴지는가
-4. 시각적 완성도 — 명백히 어색한 합성, 색상 충돌, 지저분한 레이아웃이 있는가
+3. 정보 전달 & 위계 — 핵심 메시지가 명확한가, 시선 흐름이 자연스러운가
 
-STRICT RULES:
-- Do NOT comment on: safe area, pixel alignment, font pt sizes, QR codes, navigation arrows, confirm/close buttons, template UI elements, file size.
-- Do NOT flag things you cannot visually confirm from the image.
-- If something looks intentional (mixed styles, bold color, perspective break), assume it's deliberate.
-- Distinguish clearly: 치명 리스크 = would reject, 수정 권장 = should fix, 검토 필요 = minor, 양호 = fine.
-- If nothing is wrong in a section, say 양호. Do not manufacture feedback.
+DO NOT comment on: alignment details, spacing measurements, font sizes, QR codes, confirm buttons, navigation arrows.
+If nothing is wrong in a section, say 양호. Do not manufacture feedback.
 
-For markers: divide the image into a 7x7 grid (col 1-7 left to right, row 1-7 top to bottom). Only place markers on genuinely visible problems.
+For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom). Only place on genuinely visible problems.
 
-Return ONLY a valid JSON object. No markdown, no code fences.
-
+Return ONLY valid JSON:
 {
-  "verdict": "양호",
-  "summary": ["핵심 문제 1문장"],
-  "markers": [
-    {"id": 1, "col": 3, "row": 2, "severity": "warning", "label": "레이블", "comment": "구체적으로 눈에 보이는 문제 2문장"}
+  "sections_pass1": [
+    {"id": "tv", "title": "TV 시청 환경 적합성", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []},
+    {"id": "brand", "title": "브랜드 톤 & 무드", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []},
+    {"id": "hierarchy", "title": "정보 전달 & 위계", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
   ],
-  "sections": [
-    {"id": "tv", "title": "TV 시청 환경 적합성", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []},
-    {"id": "brand", "title": "브랜드 톤 & 무드", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []},
-    {"id": "hierarchy", "title": "정보 전달 & 위계", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []},
-    {"id": "finish", "title": "시각적 완성도", "verdict": "양호", "cause": null, "problem": "내용", "reason": "이유", "suggestion": "제안", "markerIds": []}
-  ],
-  "priorities": ["1순위 수정 항목"],
-  "finalComment": "전체 총평 2문장"
+  "markers_pass1": [
+    {"id": 1, "col": 3, "row": 2, "severity": "warning", "label": "레이블", "comment": "구체적 문제 2문장"}
+  ]
 }
-
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 severity values: critical, warning, info
 All text in Korean.`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4000,
-        system: 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble.',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } },
-            { type: 'text', text: prompt }
-          ]
-        }]
+    // ============================
+    // 2번 호출: 정렬·디테일·완성도 집중
+    // ============================
+    const prompt2 = `You are a senior TV design director. Review ONLY the visual quality and alignment details.
+
+Design info:
+- Banner type: ${reviewType || 'unknown'}
+- Designer notes: ${memo || 'none'}
+${directorGuidelineText}
+
+FOCUS ONLY ON visual finish and alignment:
+- 같은 레벨 요소들(체크마크, 텍스트, 아이콘 등)의 좌측 기준선이 일치하는가
+- 반복 요소들의 간격이 균일한가
+- 합성 품질 — 그림자 방향·광원·누끼 처리가 일관성 있는가
+- 색상 충돌이나 명백히 어색한 부분이 있는가
+- 전체 레이아웃이 정돈되어 보이는가
+
+IMPORTANT: Look very carefully at repeated elements (bullet points, check marks, list items). 
+If their left edges or starting positions are inconsistent, flag it as an alignment issue.
+DO NOT comment on: TV environment, brand tone, information hierarchy, QR codes, buttons.
+If nothing is wrong, say 양호. Do not manufacture feedback.
+
+For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom). Mark the exact area with the alignment/quality issue.
+
+Return ONLY valid JSON:
+{
+  "sections_pass2": [
+    {"id": "finish", "title": "시각적 완성도 & 정렬", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
+  ],
+  "markers_pass2": [
+    {"id": 1, "col": 2, "row": 3, "severity": "warning", "label": "레이블", "comment": "구체적 문제 2문장"}
+  ]
+}
+verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
+severity values: critical, warning, info
+All text in Korean.`;
+
+    // 두 호출 병렬 실행
+    const [res1, res2] = await Promise.all([
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model, max_tokens: 2000, system: systemPrompt,
+          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt1 }] }]
+        })
+      }),
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model, max_tokens: 2000, system: systemPrompt,
+          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt2 }] }]
+        })
       })
+    ]);
+
+    const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
+    if (!res1.ok) return res.status(res1.status).json({ error: data1?.error?.message || 'API 오류 (1차)' });
+    if (!res2.ok) return res.status(res2.status).json({ error: data2?.error?.message || 'API 오류 (2차)' });
+
+    const parseJSON = (data) => {
+      const raw = (data?.content || []).map(c => c.type === 'text' ? (c.text || '') : '').join('').trim();
+      const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```\s*$/i,'').trim();
+      for (const t of [cleaned, raw]) {
+        try { const r = JSON.parse(t); if (r) return r; } catch(e) {}
+        try { const m = t.match(/\{[\s\S]*\}/); if (m) { const r = JSON.parse(m[0]); if (r) return r; } } catch(e) {}
+      }
+      return null;
+    };
+
+    const p1 = parseJSON(data1);
+    const p2 = parseJSON(data2);
+
+    // 두 결과 합치기
+    const allSections = [
+      ...(p1?.sections_pass1 || []),
+      ...(p2?.sections_pass2 || [])
+    ];
+
+    // 마커 ID 중복 방지 (2번 호출 마커 ID를 이어서)
+    const markers1 = p1?.markers_pass1 || [];
+    const offset = markers1.length;
+    const markers2 = (p2?.markers_pass2 || []).map(m => ({ ...m, id: m.id + offset }));
+    const allMarkers = [...markers1, ...markers2];
+
+    // sections의 markerIds도 offset 적용
+    (p2?.sections_pass2 || []).forEach(s => {
+      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + offset);
     });
 
-    const data = await response.json();
-    if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || 'API 오류' });
+    // 전체 verdict 계산
+    const verdictPriority = { '치명 리스크': 4, '수정 권장': 3, '검토 필요': 2, '양호': 1 };
+    const worstVerdict = allSections.reduce((worst, s) => {
+      return (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst;
+    }, '양호');
 
-    if (data.stop_reason === 'max_tokens') {
-      console.warn('[review] max_tokens hit — response truncated');
-    }
+    // 우선순위 항목
+    const priorities = allSections
+      .filter(s => s.verdict !== '양호')
+      .sort((a,b) => (verdictPriority[b.verdict]||0) - (verdictPriority[a.verdict]||0))
+      .slice(0, 3)
+      .map(s => s.problem || s.title);
 
-    const raw = (data?.content || []).map(c => c.type === 'text' ? (c.text || '') : '').join('').trim();
-    const cleaned = raw
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```\s*$/i, '')
-      .trim();
+    const parsed = {
+      verdict: worstVerdict,
+      markers: allMarkers,
+      sections: allSections,
+      priorities,
+      finalComment: allSections.filter(s => s.verdict !== '양호').length === 0
+        ? '전체적으로 양호한 시안입니다.'
+        : `${allSections.filter(s=>s.verdict==='치명 리스크').length > 0 ? '치명적인 문제가 있습니다. ' : ''}주요 수정 항목을 확인해주세요.`
+    };
 
-    let parsed = null;
-    for (const t of [cleaned, raw]) {
-      if (parsed) break;
-      try { const r = JSON.parse(t); if (r?.verdict) { parsed = r; break; } } catch(e) {}
-      try {
-        const m = t.match(/\{[\s\S]*\}/);
-        if (m) { const r = JSON.parse(m[0]); if (r?.verdict) { parsed = r; break; } }
-      } catch(e) {}
-      try {
-        const r = JSON.parse(JSON.parse(t));
-        if (r?.verdict) { parsed = r; break; }
-      } catch(e) {}
-    }
+    const combinedText = JSON.stringify(parsed);
+    console.log('[review] pass1 stop:', data1.stop_reason, '| pass2 stop:', data2.stop_reason, '| sections:', allSections.length, '| markers:', allMarkers.length);
+    return res.status(200).json({ model_used: model, text: combinedText, parsed });
 
-    console.log('[review] stop_reason:', data.stop_reason, '| parsed:', !!parsed, '| raw_len:', raw.length);
-    return res.status(200).json({ model_used: model, stop_reason: data.stop_reason, text: cleaned, parsed });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
