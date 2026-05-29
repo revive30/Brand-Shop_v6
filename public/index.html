@@ -367,7 +367,7 @@ function renderBottom(p){
       </div>
       <div class="sec-body" id="sb-${s.id}">
         ${refs?`<div class="mk-refs">${refs}</div>`:''}
-        ${s.problem?`<div class="d-block"><div class="d-label">문제</div><div class="d-text">${s.problem}</div></div>`:''}
+        ${s.problem?`<div class="d-block"><div class="d-label">문제</div><div class="d-text">${s.problem}</div></div>`:s.verdict==='양호'?`<div class="d-text" style="color:var(--green);font-size:13px">✓ 문제 없음</div>`:''}
         ${s.reason?`<div class="d-block"><div class="d-label">이유</div><div class="d-text">${s.reason}</div></div>`:''}
         ${s.suggestion?`<div class="d-suggest">${s.suggestion}</div>`:''}
       </div>
