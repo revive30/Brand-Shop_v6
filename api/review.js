@@ -208,10 +208,13 @@ All text in Korean.`;
     const p2 = parseJSON(data2);
     const p3 = data3 ? parseJSON(data3) : null;
 
-    // 세 결과 합치기
+    // 세 결과 합치기 — TV환경·안전영역은 맨 뒤로
+    const tvSection = (p1?.sections_pass1 || []).filter(s => s.id === 'tv');
+    const mainSections = (p1?.sections_pass1 || []).filter(s => s.id !== 'tv');
     const allSections = [
-      ...(p1?.sections_pass1 || []),
+      ...mainSections,
       ...(p2?.sections_pass2 || []),
+      ...tvSection,
       ...(p3?.sections_pass3 || [])
     ];
 
