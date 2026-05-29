@@ -418,6 +418,25 @@ function renderBottom(p){
 async function startReview(){
   const spec=checkSpec();if(!spec)return;
   const cfg=PERSPECTIVE_CONFIG[perspective]||PERSPECTIVE_CONFIG.designer;
+
+  // 사이즈 불일치 체크 — 치명 경고
+  if(!spec.result.sizeOk){
+    const expected = spec.expected.width ? `${spec.expected.width}×${spec.expected.height}` : `H ${spec.expected.height}`;
+    const actual = `${spec.actual.width}×${spec.actual.height}`;
+    $('bottomPane').innerHTML=`
+      <div style="margin:24px;background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--r);padding:24px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-size:22px">⚠️</span>
+          <span style="font-size:16px;font-weight:800;color:var(--red)">치명 리스크 — 사이즈 불일치</span>
+        </div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.7">
+          업로드한 이미지 사이즈가 기준과 맞지 않습니다.<br>
+          <strong style="color:var(--text)">업로드: ${actual}</strong> &nbsp;/&nbsp; <strong style="color:var(--text)">기준: ${expected}</strong><br><br>
+          사이즈를 수정한 후 다시 검수해주세요. 사이즈가 맞지 않으면 TV 화면에서 잘리거나 늘어날 수 있습니다.
+        </div>
+      </div>`;
+    return;
+  }
   $('canvasEmpty').style.display='none';$('canvasImg').style.display='none';
   $('canvasLoading').style.display='flex';$('mkLayer').innerHTML='';
   $('cpList').innerHTML='<div class="cp-empty">검수 중이에요</div>';
