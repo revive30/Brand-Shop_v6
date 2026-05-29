@@ -98,16 +98,16 @@ Design info:
 - Designer notes: ${memo || 'none'}
 ${directorGuidelineText}
 
-FOCUS ONLY ON visual finish and alignment:
-- 같은 레벨 요소들(체크마크, 텍스트, 아이콘 등)의 좌측 기준선이 일치하는가
-- 반복 요소들의 간격이 균일한가
-- 합성 품질 — 그림자 방향·광원·누끼 처리가 일관성 있는가
-- 색상 충돌이나 명백히 어색한 부분이 있는가
-- 전체 레이아웃이 정돈되어 보이는가
+FOCUS ONLY ON visual finish and design quality — look at the IMAGES and VISUALS:
+- 이미지·비주얼 합성 품질 — 그림자 방향·광원·누끼 처리가 일관성 있는가. 어색하게 붙여넣은 느낌은 없는가
+- 색상 조합 — 색상 충돌, 촌스러운 조합이 있는가
+- 비주얼 요소 완성도 — 제품 이미지, 캐릭터, 그래픽 요소의 퀄리티가 균일한가
+- 전체 레이아웃 정돈감 — 요소들이 시각적으로 균형 잡혀 있는가, 덩어리감이 있는가
+- 반복 요소 정렬 — 체크마크·불릿포인트 등 같은 레벨 요소들의 좌측 기준선이 일치하는가
 
-IMPORTANT: Look very carefully at repeated elements (bullet points, check marks, list items). 
+IMPORTANT: Look very carefully at repeated elements (bullet points, check marks, list items).
 If their left edges or starting positions are inconsistent, flag it as an alignment issue.
-DO NOT comment on: TV environment, brand tone, information hierarchy, QR codes, buttons.
+DO NOT comment on: TV environment, brand strategy, information quantity, QR codes, buttons.
 If nothing is wrong, say 양호 — but still fill in the "reason" field explaining why it looks good. Do not manufacture problems.
 
 For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom). Mark the exact area with the alignment/quality issue.
@@ -152,22 +152,23 @@ All text in Korean.`;
 
 I am giving you TWO images:
 1. First image: the actual design (시안)
-2. Second image: the safe area overlay — RED areas are OUTSIDE the safe zone, BLACK area is INSIDE the safe zone
+2. Second image: the safe area overlay
 
-Compare the two images carefully. Check if any CORE ELEMENTS of the design are placed in the RED (unsafe) areas.
+In the overlay image:
+- The RED border area around the edges = DANGER ZONE (outside safe area)
+- The BLACK center area = SAFE ZONE (inside safe area)
 
-CORE ELEMENTS that must be inside the safe zone:
+Look at the FIRST image (the actual design) and check if any core elements are placed where the RED border would be in the second image.
+
+Safe area boundary reference: approximately 80px from left/right edges, 60px from top/bottom edges of the 1920x1080 canvas.
+
+ONLY flag if these CORE ELEMENTS are clearly outside the safe zone:
 - Main title text
-- Body text / bullet points
-- Key visuals / product images
+- Body text / bullet points  
+- Key product images
 - Important information (dates, prices, benefits)
 
-NOT flagged even if in red area:
-- Background images or gradients
-- Decorative elements
-- Navigation arrows
-
-For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom).
+DO NOT flag: background images, gradients, decorative elements, navigation arrows, confirm buttons.
 
 Return ONLY valid JSON:
 {
@@ -220,9 +221,15 @@ All text in Korean.`;
     ];
 
     // 마커 ID 중복 방지
-    const markers1 = p1?.markers_pass1 || [];
-    const markers2 = (p2?.markers_pass2 || []).map(m => ({ ...m, id: m.id + markers1.length }));
-    const markers3 = (p3?.markers_pass3 || []).map(m => ({ ...m, id: m.id + markers1.length + markers2.length }));
+    // 마커 ID를 숫자로 강제 변환
+    const normalizeMarkers = (markers) => (markers || []).map((m, i) => ({
+      ...m,
+      id: parseInt(String(m.id).replace(/\D/g, '')) || (i + 1)
+    }));
+
+    const markers1 = normalizeMarkers(p1?.markers_pass1);
+    const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length }));
+    const markers3 = normalizeMarkers(p3?.markers_pass3).map(m => ({ ...m, id: m.id + markers1.length + markers2.length }));
     const allMarkers = [...markers1, ...markers2, ...markers3];
 
     // sections의 markerIds도 offset 적용
