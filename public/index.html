@@ -270,6 +270,7 @@ function checkSpec(){
   const overlayBtn=$('overlayBtn'), overlayImg=$('overlayImg');
   if(spec?.overlay){
     overlayImg.src=spec.overlay;
+    overlayImg.dataset.overlayPath=spec.overlay;
     overlayImg.style.display='block';
     overlayBtn.style.display='block';
     overlayBtn.textContent='안전영역 숨기기';
@@ -449,28 +450,30 @@ async function startReview(){
     // 오버레이가 있으면 시안 + 오버레이 합성해서 1장으로 만들기
     let overlayBase64 = null;
     const ovImg = $('overlayImg');
-    if(ovImg && ovImg.src && ovImg.style.display !== 'none' && !ovImg.src.endsWith(window.location.href)){
+    if(ovImg && ovImg.src && !ovImg.src.endsWith(window.location.href) && ovImg.dataset.overlayPath){
       try {
         const canvas = document.createElement('canvas');
         const canvasImg = $('canvasImg');
         canvas.width = canvasImg.naturalWidth;
         canvas.height = canvasImg.naturalHeight;
         const ctx = canvas.getContext('2d');
-        // 시안 먼저 그리기
+
+        // 시안 그리기
         ctx.drawImage(canvasImg, 0, 0);
-        // 오버레이 반투명하게 합성
-        ctx.globalAlpha = 0.6;
-        const overlayImage = new Image();
-        overlayImage.crossOrigin = 'anonymous';
-        await new Promise((res, rej) => {
-          overlayImage.onload = res;
-          overlayImage.onerror = rej;
-          overlayImage.src = ovImg.src;
-        });
-        ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+
+        // 오버레이 fetch → blob → Image로 변환해서 합성
+        const ovResp = await fetch(ovImg.dataset.overlayPath);
+        const ovBlob = await ovResp.blob();
+        const ovUrl = URL.createObjectURL(ovBlob);
+        const ovImage = new Image();
+        await new Promise((res, rej) => { ovImage.onload=res; ovImage.onerror=rej; ovImage.src=ovUrl; });
+        ctx.globalAlpha = 0.65;
+        ctx.drawImage(ovImage, 0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = 1.0;
-        // 합성된 이미지를 base64로
+        URL.revokeObjectURL(ovUrl);
+
         overlayBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+        console.log('[overlay] merged image size:', overlayBase64.length);
       } catch(e) { console.warn('overlay merge failed', e); }
     }
 
