@@ -170,12 +170,14 @@ ONLY flag if these CORE ELEMENTS are clearly outside the safe zone:
 
 DO NOT flag: background images, gradients, decorative elements, navigation arrows, confirm buttons.
 
-Return ONLY valid JSON:
+DO NOT place any markers. This section uses text judgment only.
+No markers needed — just judge whether core elements are inside or outside the safe zone.
+
+Return ONLY valid JSON with NO markers:
 {
   "sections_pass3": [
     {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
-  ],
-  "markers_pass3": []
+  ]
 }
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 severity values: critical, warning, info
@@ -229,7 +231,7 @@ All text in Korean.`;
 
     const markers1 = normalizeMarkers(p1?.markers_pass1);
     const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length }));
-    const markers3 = normalizeMarkers(p3?.markers_pass3).map(m => ({ ...m, id: m.id + markers1.length + markers2.length }));
+    const markers3 = []; // 안전영역은 마커 없음
     const allMarkers = [...markers1, ...markers2, ...markers3];
 
     // sections의 markerIds도 offset 적용
