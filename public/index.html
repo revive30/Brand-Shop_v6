@@ -263,7 +263,22 @@ function setPerspective(p){perspective=p;document.querySelectorAll('.int-btn').f
 function f2b64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f);})}
 function getImgInfo(f){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res({w:i.naturalWidth,h:i.naturalHeight});i.onerror=rej;i.src=URL.createObjectURL(f);})}
 function checkSpec(){
-  const type=$('bannerType').value,spec=rules.items?.[type];
+  const type=$('bannerType').value, spec=rules.items?.[type];
+
+  // 오버레이는 배너 선택만 해도 바로 세팅
+  const overlayBtn=$('overlayBtn'), overlayImg=$('overlayImg');
+  if(spec?.overlay){
+    overlayImg.src=spec.overlay;
+    overlayImg.style.display='block';
+    overlayBtn.style.display='block';
+    overlayBtn.textContent='안전영역 숨기기';
+    overlayBtn.classList.add('active');
+  } else {
+    overlayBtn.style.display='none';
+    overlayImg.style.display='none';
+    overlayImg.src='';
+  }
+
   if(!file||!type||!spec){$('runBtn').disabled=true;return null;}
   const kb=Math.round(file.size/1024);
   const sizeOk=(spec.width===null||imgInfo.w===spec.width)&&imgInfo.h===spec.height;
@@ -275,31 +290,15 @@ function checkSpec(){
     <div class="spec-row"><span class="spec-key">용량</span><span class="warn">${kb}KB</span></div>
     <div class="spec-row"><span class="spec-key">안전영역</span><span class="warn">${spec.safeArea}</span></div>`;
   $('runBtn').disabled=false;
-
-  // 오버레이 설정
-  const overlayBtn = $('overlayBtn');
-  const overlayImg = $('overlayImg');
-  if(spec.overlay){
-    overlayImg.src = spec.overlay;
-    overlayImg.style.display = 'block';
-    overlayBtn.style.display = 'block';
-    overlayBtn.textContent = '안전영역 숨기기';
-    overlayBtn.classList.add('active');
-  } else {
-    overlayBtn.style.display = 'none';
-    overlayImg.style.display = 'none';
-    overlayImg.src = '';
-  }
-
   return{type,actual:{width:imgInfo.w,height:imgInfo.h,mime:file.type,kb},expected:spec,result:{sizeOk,fmtOk}};
 }
 
 function toggleOverlay(){
   const btn=$('overlayBtn'), img=$('overlayImg');
-  const isOn = img.style.display !== 'none';
-  img.style.display = isOn ? 'none' : 'block';
-  btn.textContent = isOn ? '안전영역 보기' : '안전영역 숨기기';
-  btn.classList.toggle('active', !isOn);
+  const isOn=img.style.display!=='none';
+  img.style.display=isOn?'none':'block';
+  btn.textContent=isOn?'안전영역 보기':'안전영역 숨기기';
+  btn.classList.toggle('active',!isOn);
 }
 async function handleFile(f){
   file=f;imgInfo=await getImgInfo(f);
