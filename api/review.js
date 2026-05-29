@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
-    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, perspectiveKey } = req.body || {};
+    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, perspectiveKey, overlayBase64 } = req.body || {};
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
     // ✅ design-guide-rules.json 로드
@@ -125,29 +125,78 @@ verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 severity values: critical, warning, info
 All text in Korean.`;
 
-    // 두 호출 병렬 실행
-    const [res1, res2] = await Promise.all([
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model, max_tokens: 2000, system: systemPrompt,
-          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt1 }] }]
-        })
-      }),
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model, max_tokens: 2000, system: systemPrompt,
-          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt2 }] }]
-        })
+    // 두 호출 병렬 실행 (오버레이 있으면 3번째 호출 추가)
+    const call1 = fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model, max_tokens: 2000, system: systemPrompt,
+        messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt1 }] }]
       })
-    ]);
+    });
 
-    const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
+    const call2 = fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model, max_tokens: 2000, system: systemPrompt,
+        messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt2 }] }]
+      })
+    });
+
+    // 3번째 호출: 안전영역 오버레이 분석
+    let call3 = null;
+    if (overlayBase64) {
+      const overlayContent = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: overlayBase64 } };
+      const prompt3 = `You are reviewing a TV banner design for safe area compliance.
+
+I am giving you TWO images:
+1. First image: the actual design (시안)
+2. Second image: the safe area overlay — RED areas are OUTSIDE the safe zone, BLACK area is INSIDE the safe zone
+
+Compare the two images carefully. Check if any CORE ELEMENTS of the design are placed in the RED (unsafe) areas.
+
+CORE ELEMENTS that must be inside the safe zone:
+- Main title text
+- Body text / bullet points
+- Key visuals / product images
+- Important information (dates, prices, benefits)
+
+NOT flagged even if in red area:
+- Background images or gradients
+- Decorative elements
+- Navigation arrows
+
+For markers: 7x7 grid (col 1-7 left→right, row 1-7 top→bottom).
+
+Return ONLY valid JSON:
+{
+  "sections_pass3": [
+    {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
+  ],
+  "markers_pass3": []
+}
+verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
+severity values: critical, warning, info
+All text in Korean.`;
+
+      call3 = fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model, max_tokens: 1000, system: systemPrompt,
+          messages: [{ role: 'user', content: [imageContent, overlayContent, { type: 'text', text: prompt3 }] }]
+        })
+      });
+    }
+
+    const promises = call3 ? [call1, call2, call3] : [call1, call2];
+    const responses = await Promise.all(promises);
+    const [res1, res2, res3] = responses;
+    const [data1, data2, data3] = await Promise.all(responses.map(r => r.json()));
     if (!res1.ok) return res.status(res1.status).json({ error: data1?.error?.message || 'API 오류 (1차)' });
     if (!res2.ok) return res.status(res2.status).json({ error: data2?.error?.message || 'API 오류 (2차)' });
+    if (res3 && !res3.ok) return res.status(res3.status).json({ error: data3?.error?.message || 'API 오류 (3차)' });
 
     const parseJSON = (data) => {
       const raw = (data?.content || []).map(c => c.type === 'text' ? (c.text || '') : '').join('').trim();
@@ -161,22 +210,27 @@ All text in Korean.`;
 
     const p1 = parseJSON(data1);
     const p2 = parseJSON(data2);
+    const p3 = data3 ? parseJSON(data3) : null;
 
-    // 두 결과 합치기
+    // 세 결과 합치기
     const allSections = [
       ...(p1?.sections_pass1 || []),
-      ...(p2?.sections_pass2 || [])
+      ...(p2?.sections_pass2 || []),
+      ...(p3?.sections_pass3 || [])
     ];
 
     // 마커 ID 중복 방지
     const markers1 = p1?.markers_pass1 || [];
-    const offset = markers1.length;
-    const markers2 = (p2?.markers_pass2 || []).map(m => ({ ...m, id: m.id + offset }));
-    const allMarkers = [...markers1, ...markers2];
+    const markers2 = (p2?.markers_pass2 || []).map(m => ({ ...m, id: m.id + markers1.length }));
+    const markers3 = (p3?.markers_pass3 || []).map(m => ({ ...m, id: m.id + markers1.length + markers2.length }));
+    const allMarkers = [...markers1, ...markers2, ...markers3];
 
     // sections의 markerIds도 offset 적용
     (p2?.sections_pass2 || []).forEach(s => {
-      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + offset);
+      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length);
+    });
+    (p3?.sections_pass3 || []).forEach(s => {
+      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length + markers2.length);
     });
 
     // 전체 verdict 계산
