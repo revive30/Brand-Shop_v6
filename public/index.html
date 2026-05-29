@@ -446,17 +446,32 @@ async function startReview(){
   try{
     const b64=await f2b64(file);
 
-    // 오버레이 이미지 base64 변환
+    // 오버레이가 있으면 시안 + 오버레이 합성해서 1장으로 만들기
     let overlayBase64 = null;
     const ovImg = $('overlayImg');
-    if(ovImg && ovImg.src && !ovImg.src.endsWith(window.location.href)){
+    if(ovImg && ovImg.src && ovImg.style.display !== 'none' && !ovImg.src.endsWith(window.location.href)){
       try {
-        const resp = await fetch(ovImg.src);
-        const blob = await resp.blob();
-        overlayBase64 = await new Promise(res => {
-          const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(blob);
+        const canvas = document.createElement('canvas');
+        const canvasImg = $('canvasImg');
+        canvas.width = canvasImg.naturalWidth;
+        canvas.height = canvasImg.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        // 시안 먼저 그리기
+        ctx.drawImage(canvasImg, 0, 0);
+        // 오버레이 반투명하게 합성
+        ctx.globalAlpha = 0.6;
+        const overlayImage = new Image();
+        overlayImage.crossOrigin = 'anonymous';
+        await new Promise((res, rej) => {
+          overlayImage.onload = res;
+          overlayImage.onerror = rej;
+          overlayImage.src = ovImg.src;
         });
-      } catch(e) { console.warn('overlay fetch failed', e); }
+        ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1.0;
+        // 합성된 이미지를 base64로
+        overlayBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+      } catch(e) { console.warn('overlay merge failed', e); }
     }
 
     const res=await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
