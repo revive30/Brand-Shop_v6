@@ -450,7 +450,7 @@ async function startReview(){
     // 오버레이가 있으면 시안 + 오버레이 합성해서 1장으로 만들기
     let overlayBase64 = null;
     const ovImg = $('overlayImg');
-    if(ovImg && ovImg.src && !ovImg.src.endsWith(window.location.href) && ovImg.dataset.overlayPath){
+    if(ovImg && ovImg.dataset.overlayPath){
       try {
         const canvas = document.createElement('canvas');
         const canvasImg = $('canvasImg');
@@ -473,6 +473,8 @@ async function startReview(){
         URL.revokeObjectURL(ovUrl);
 
         overlayBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+        // 디버그: 합성 이미지 새 탭으로 확인
+        window.open(canvas.toDataURL('image/jpeg', 0.9), '_blank');
         console.log('[overlay] merged image size:', overlayBase64.length);
       } catch(e) { console.warn('overlay merge failed', e); }
     }
