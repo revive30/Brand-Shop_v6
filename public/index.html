@@ -79,7 +79,10 @@ select option{background:var(--surface2)}
 .loading-msg{font-size:15px;font-weight:600;color:var(--text2)}
 .loading-sub{font-size:12px;color:var(--text3)}
 .comment-panel{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
-.cp-head{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.01em;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.cp-head{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.01em;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cp-legend{display:flex;gap:8px;margin-left:auto}
+.mli{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--text3)}
+.mli-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .cp-list{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;flex:1}
 .cp-item{border-radius:var(--r2);padding:13px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);transition:all .15s}
 .cp-item:hover{border-color:var(--border2)}
@@ -217,14 +220,16 @@ select option{background:var(--surface2)}
         </div>
         <img id="canvasImg" class="canvas-img" style="display:none" alt="시안" onclick="openModal()"/>
         <div class="mk-layer" id="mkLayer"></div>
-        <div class="mk-legend" id="mkLegend" style="display:none">
-          <span class="ml-item"><span class="ml-dot" style="background:var(--red)"></span>치명</span>
-          <span class="ml-item"><span class="ml-dot" style="background:var(--yellow)"></span>수정</span>
-          <span class="ml-item"><span class="ml-dot" style="background:var(--blue)"></span>참고</span>
-        </div>
       </div>
       <div class="comment-panel">
-        <div class="cp-head">마커 코멘트</div>
+        <div class="cp-head">
+          마커 코멘트
+          <div class="cp-legend">
+            <span class="mli"><span class="mli-dot" style="background:var(--red)"></span>치명</span>
+            <span class="mli"><span class="mli-dot" style="background:var(--yellow)"></span>수정</span>
+            <span class="mli"><span class="mli-dot" style="background:var(--blue)"></span>참고</span>
+          </div>
+        </div>
         <div class="cp-list" id="cpList">
           <div class="cp-empty">검수 후 마커를 클릭하면<br>코멘트가 표시됩니다</div>
         </div>
@@ -295,8 +300,7 @@ function getImgRect(){
 }
 function renderMarkers(markers){
   const layer=$('mkLayer');layer.innerHTML='';
-  if(!markers?.length){$('mkLegend').style.display='none';return;}
-  $('mkLegend').style.display='flex';
+  if(!markers?.length){return;}
   const {ox,oy,rw,rh}=getImgRect();
   const COLS=7,ROWS=7,placed=[];
   markers.forEach(m=>{
@@ -376,11 +380,6 @@ function renderBottom(p){
     <div class="result-topbar">
       <div class="v-pill ${vcls}"><div class="v-dot"></div><span class="v-text">${p.verdict}</span></div>
       <span class="v-dir"><span class="intensity-badge ${cfg.badgeClass}">${cfg.label}</span> 기준 검수</span>
-      <div class="mk-legend-inline">
-        <span class="mli"><span class="mli-dot" style="background:var(--red)"></span>치명</span>
-        <span class="mli"><span class="mli-dot" style="background:var(--yellow)"></span>수정</span>
-        <span class="mli"><span class="mli-dot" style="background:var(--blue)"></span>참고</span>
-      </div>
     </div>
     <div class="sections-sec">${sections}</div>
     <div class="bottom-cards">
@@ -435,7 +434,7 @@ async function startReview(){
 function copyRes(){navigator.clipboard.writeText(lastText).then(()=>{const b=event.target;b.textContent='✓ 복사됨';setTimeout(()=>b.textContent='결과 복사',2000)})}
 function resetView(){
   parsed=null;lastText='';activeId=null;
-  $('mkLayer').innerHTML='';$('mkLegend').style.display='none';
+  $('mkLayer').innerHTML='';
   $('cpList').innerHTML='<div class="cp-empty">검수 후 마커를 클릭하면<br>코멘트가 표시됩니다</div>';
   $('bottomPane').innerHTML='';
   $('canvasImg').style.display=file?'block':'none';
