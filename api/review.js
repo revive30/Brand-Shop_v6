@@ -103,11 +103,8 @@ FOCUS ONLY ON visual finish and design quality — look at the IMAGES and VISUAL
 - 색상 조합 — 색상 충돌, 촌스러운 조합이 있는가
 - 비주얼 요소 완성도 — 제품 이미지, 캐릭터, 그래픽 요소의 퀄리티가 균일한가
 - 전체 레이아웃 정돈감 — 요소들이 시각적으로 균형 잡혀 있는가, 덩어리감이 있는가
-- 반복 요소 정렬 — 체크마크·불릿포인트 등 같은 레벨 요소들의 좌측 기준선이 일치하는가
 
-IMPORTANT: Look very carefully at repeated elements (bullet points, check marks, list items).
-If their left edges or starting positions are inconsistent, flag it as an alignment issue.
-DO NOT comment on: TV environment, brand strategy, information quantity, QR codes, buttons.
+DO NOT comment on: alignment, spacing measurements, TV environment, brand strategy, information quantity, QR codes, buttons.
 If nothing is wrong, say 양호 — but still fill in the "reason" field explaining why it looks good. Do not manufacture problems.
 
 For markers: 10x10 grid (col 1-10 left→right, row 1-10 top→bottom). IMPORTANT: For each marker, first identify the specific element you flagged as a problem, then look at where that element actually appears in the image, and place the marker at that exact grid position. Do not guess — look at the element you just described.
@@ -208,7 +205,7 @@ All text in Korean.`;
     const p2 = parseJSON(data2);
     const p3 = data3 ? parseJSON(data3) : null;
 
-    // 세 결과 합치기 — TV환경·안전영역은 맨 뒤로
+    // 결과 합치기 — TV환경·안전영역은 맨 뒤로
     const tvSection = (p1?.sections_pass1 || []).filter(s => s.id === 'tv');
     const mainSections = (p1?.sections_pass1 || []).filter(s => s.id !== 'tv');
     const allSections = [
@@ -218,7 +215,6 @@ All text in Korean.`;
       ...(p3?.sections_pass3 || [])
     ];
 
-    // 마커 ID 중복 방지
     // 마커 ID를 숫자로 강제 변환
     const normalizeMarkers = (markers) => (markers || []).map((m, i) => ({
       ...m,
@@ -227,15 +223,20 @@ All text in Korean.`;
 
     const markers1 = normalizeMarkers(p1?.markers_pass1);
     const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length }));
-    const markers3 = p3 ? [{ id: markers1.length + markers2.length + 1, col: 1, row: 1, severity: p3?.sections_pass3?.[0]?.verdict === '양호' ? 'info' : 'warning', label: '안전영역', comment: p3?.sections_pass3?.[0]?.problem || '안전영역 확인' }] : [];
-    const allMarkers = [...markers1, ...markers2, ...markers3];
+    // 안전영역 마커는 없음 — 오버레이로 눈으로 확인
+    const allMarkers = [...markers1, ...markers2];
 
-    // sections의 markerIds도 offset 적용
+    // 안전영역 섹션 있으면 좌측 상단 고정 마커 추가
+    if (p3?.sections_pass3?.length) {
+      const safeVerdict = p3.sections_pass3[0]?.verdict;
+      const safeSeverity = safeVerdict === '치명 리스크' ? 'critical' : safeVerdict === '수정 권장' ? 'warning' : 'info';
+      const safeMarkerId = markers1.length + markers2.length + 1;
+      allMarkers.push({ id: safeMarkerId, col: 1, row: 1, severity: safeSeverity, label: '안전영역', comment: p3.sections_pass3[0]?.problem || '안전영역을 확인하세요' });
+      p3.sections_pass3.forEach(s => { s.markerIds = [safeMarkerId]; });
+    }
+
     (p2?.sections_pass2 || []).forEach(s => {
       if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length);
-    });
-    (p3?.sections_pass3 || []).forEach(s => {
-      if (s.markerIds !== undefined) s.markerIds = markers3.map(m => m.id);
     });
 
     // 전체 verdict 계산
