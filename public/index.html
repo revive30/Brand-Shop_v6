@@ -329,7 +329,7 @@ function renderMarkers(markers){
   const layer=$('mkLayer');layer.innerHTML='';
   if(!markers?.length){return;}
   const {ox,oy,rw,rh}=getImgRect();
-  const COLS=7,ROWS=7,placed=[];
+  const COLS=10,ROWS=10,placed=[];
   markers.forEach(m=>{
     const el=document.createElement('div');
     const col=Math.min(Math.max(m.col||1,1),COLS);
