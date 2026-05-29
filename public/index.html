@@ -151,6 +151,9 @@ select option{background:var(--surface2)}
 .img-modal-close{position:absolute;top:20px;right:24px;color:#fff;font-size:28px;cursor:pointer;opacity:.7;transition:opacity .15s;line-height:1}
 .img-modal-close:hover{opacity:1}
 .intensity-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+.overlay-btn{position:absolute;top:10px;right:10px;z-index:20;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:11px;font-weight:600;padding:5px 10px;border-radius:var(--r3);cursor:pointer;transition:all .15s;font-family:inherit}
+.overlay-btn:hover{background:rgba(0,0,0,.9);border-color:rgba(255,255,255,.4);color:#fff}
+.overlay-btn.active{background:rgba(255,79,79,.2);border-color:var(--red);color:var(--red)}
 .ib-thorough{background:rgba(255,79,79,.12);color:var(--red)}
 .ib-normal{background:rgba(255,170,0,.12);color:var(--yellow)}
 .ib-quick{background:rgba(0,193,122,.12);color:var(--green)}
@@ -217,7 +220,9 @@ select option{background:var(--surface2)}
           <div class="loading-sub" id="loadSub">잠시만 기다려주세요</div>
         </div>
         <img id="canvasImg" class="canvas-img" style="display:none" alt="시안" onclick="openModal()"/>
+        <img id="overlayImg" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:0.7;z-index:4" alt="안전영역"/>
         <div class="mk-layer" id="mkLayer"></div>
+        <button class="overlay-btn" id="overlayBtn" style="display:none" onclick="toggleOverlay()">안전영역 보기</button>
       </div>
       <div class="comment-panel">
         <div class="cp-head">
@@ -270,7 +275,30 @@ function checkSpec(){
     <div class="spec-row"><span class="spec-key">용량</span><span class="warn">${kb}KB</span></div>
     <div class="spec-row"><span class="spec-key">안전영역</span><span class="warn">${spec.safeArea}</span></div>`;
   $('runBtn').disabled=false;
+
+  // 오버레이 설정
+  const overlayBtn = $('overlayBtn');
+  const overlayImg = $('overlayImg');
+  if(spec.overlay){
+    overlayImg.src = spec.overlay;
+    overlayBtn.style.display = 'block';
+    overlayImg.style.display = 'none';
+    overlayBtn.textContent = '안전영역 보기';
+    overlayBtn.classList.remove('active');
+  } else {
+    overlayBtn.style.display = 'none';
+    overlayImg.style.display = 'none';
+  }
+
   return{type,actual:{width:imgInfo.w,height:imgInfo.h,mime:file.type,kb},expected:spec,result:{sizeOk,fmtOk}};
+}
+
+function toggleOverlay(){
+  const btn=$('overlayBtn'), img=$('overlayImg');
+  const isOn = img.style.display !== 'none';
+  img.style.display = isOn ? 'none' : 'block';
+  btn.textContent = isOn ? '안전영역 보기' : '안전영역 숨기기';
+  btn.classList.toggle('active', !isOn);
 }
 async function handleFile(f){
   file=f;imgInfo=await getImgInfo(f);
@@ -369,6 +397,7 @@ function renderBottom(p){
         ${refs?`<div class="mk-refs">${refs}</div>`:''}
         ${s.problem?`<div class="d-block"><div class="d-label">문제</div><div class="d-text">${s.problem}</div></div>`:s.verdict==='양호'?`<div class="d-text" style="color:var(--green);font-size:13px">✓ 문제 없음</div>`:''}
         ${s.reason?`<div class="d-block"><div class="d-label">이유</div><div class="d-text">${s.reason}</div></div>`:''}
+        ${s.reason?`<div class="d-block"><div class="d-label">이유</div><div class="d-text">${s.reason}</div></div>`:''}
         ${s.suggestion?`<div class="d-suggest">${s.suggestion}</div>`:''}
       </div>
     </div>`;
@@ -397,10 +426,25 @@ async function startReview(){
   const timer=setInterval(()=>{li=(li+1)%LOADS.length;$('loadMsg').textContent=LOADS[li][0];$('loadSub').textContent=LOADS[li][1]},2800);
   try{
     const b64=await f2b64(file);
+
+    // 오버레이 이미지 base64 변환
+    let overlayBase64 = null;
+    const ovImg = $('overlayImg');
+    if(ovImg && ovImg.src && !ovImg.src.endsWith(window.location.href)){
+      try {
+        const resp = await fetch(ovImg.src);
+        const blob = await resp.blob();
+        overlayBase64 = await new Promise(res => {
+          const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(blob);
+        });
+      } catch(e) { console.warn('overlay fetch failed', e); }
+    }
+
     const res=await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       imageBase64:b64,mimeType:file.type,reviewType:$('bannerType').value,
       brandName:'',purpose:'',benefit:'',cta:'',memo:$('memo').value,
-      specCheck:spec,perspectiveKey:cfg.key
+      specCheck:spec,perspectiveKey:cfg.key,
+      overlayBase64
     })});
     const text=await res.text();clearInterval(timer);
     if(!res.ok){let msg=text;try{msg=JSON.parse(text)?.error||text}catch(e){}throw new Error(msg);}
