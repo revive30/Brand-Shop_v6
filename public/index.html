@@ -453,29 +453,38 @@ async function startReview(){
     if(ovImg && ovImg.dataset.overlayPath){
       try {
         const canvas = document.createElement('canvas');
-        const canvasImg = $('canvasImg');
-        canvas.width = canvasImg.naturalWidth;
-        canvas.height = canvasImg.naturalHeight;
+        canvas.width = imgInfo.w;
+        canvas.height = imgInfo.h;
         const ctx = canvas.getContext('2d');
 
-        // 시안 그리기
-        ctx.drawImage(canvasImg, 0, 0);
+        // 시안: file에서 직접 blob URL로 그리기
+        const sianImage = new Image();
+        const sianUrl = URL.createObjectURL(file);
+        await new Promise((res,rej)=>{sianImage.onload=res;sianImage.onerror=rej;sianImage.src=sianUrl;});
+        ctx.drawImage(sianImage, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(sianUrl);
 
-        // 오버레이 fetch → blob → Image로 변환해서 합성
+        // 오버레이: fetch → blob → Image
         const ovResp = await fetch(ovImg.dataset.overlayPath);
         const ovBlob = await ovResp.blob();
         const ovUrl = URL.createObjectURL(ovBlob);
         const ovImage = new Image();
-        await new Promise((res, rej) => { ovImage.onload=res; ovImage.onerror=rej; ovImage.src=ovUrl; });
+        await new Promise((res,rej)=>{ovImage.onload=res;ovImage.onerror=rej;ovImage.src=ovUrl;});
         ctx.globalAlpha = 0.65;
         ctx.drawImage(ovImage, 0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = 1.0;
         URL.revokeObjectURL(ovUrl);
 
         overlayBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
-        // 디버그: 합성 이미지 새 탭으로 확인
-        window.open(canvas.toDataURL('image/jpeg', 0.9), '_blank');
-        console.log('[overlay] merged image size:', overlayBase64.length);
+
+        // 디버그: 합성 이미지 인라인으로 확인
+        const debugImg = document.createElement('img');
+        debugImg.src = canvas.toDataURL('image/jpeg', 0.9);
+        debugImg.style.cssText = 'position:fixed;bottom:10px;right:10px;width:300px;z-index:9999;border:2px solid red;border-radius:8px';
+        debugImg.id = 'debugMerged';
+        document.getElementById('debugMerged')?.remove();
+        document.body.appendChild(debugImg);
+        setTimeout(()=>debugImg.remove(), 10000);
       } catch(e) { console.warn('overlay merge failed', e); }
     }
 
