@@ -84,7 +84,6 @@ Return ONLY a valid JSON object. No markdown, no code fences.
 
 {
   "verdict": "양호",
-  "directorType": "${directorType || 'A'}",
   "summary": ["핵심 문제 1문장"],
   "markers": [
     {"id": 1, "col": 3, "row": 2, "severity": "warning", "label": "레이블", "comment": "구체적으로 눈에 보이는 문제 2문장"}
