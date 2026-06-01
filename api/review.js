@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
-    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, perspectiveKey, overlayBase64 } = req.body || {};
+    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, overlayBase64, intensity } = req.body || {};
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
     // ✅ design-guide-rules.json 로드
@@ -24,21 +24,18 @@ Spec check:
 - File size shown is a preview thumbnail — do NOT flag it.
 - Safe area: only flag CORE ELEMENTS (main text, key visuals) outside safe zone. Background/decorations are fine.` : '';
 
-    // ✅ 관점별 가이드 주입
+    // ✅ 통합 디렉터 가이드 주입 (관점 분리 없음 — 단일 검수 기준 + 검수 강도)
     const dg = rulesData?.directorGuidelines;
-    const pKey = perspectiveKey || '디자이너';
-    const perspectiveLabels = { '디자이너': 'Designer', '마케터': 'Marketer', '디렉터': 'Director' };
-
+    const intensityKey = ['하','중','상'].includes(intensity) ? intensity : '중';
     let directorGuidelineText = '';
     if (dg) {
       const forbidden = dg['공통_절대금지'] || [];
-      const perspective = dg[pKey] || {};
-      const viewpoint = perspective['관점'] || '';
-      const criteria = perspective['기준'] || [];
+      const criteria = dg['검수기준'] || [];
+      const intensityNote = dg['검수강도']?.[intensityKey] || '';
       directorGuidelineText = [
         forbidden.length ? `\nABSOLUTE RULES (never violate):\n${forbidden.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
-        viewpoint ? `\nREVIEW PERSPECTIVE — ${perspectiveLabels[pKey] || pKey}: ${viewpoint}` : '',
         criteria.length ? `\nEVALUATION CRITERIA:\n${criteria.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
+        intensityNote ? `\nREVIEW INTENSITY — ${intensityKey}: ${intensityNote}` : '',
       ].filter(Boolean).join('\n');
     }
 
