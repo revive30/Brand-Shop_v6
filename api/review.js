@@ -144,25 +144,36 @@ All text in Korean.`;
       const overlayContent = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: overlayBase64 } };
       const prompt3 = `You are reviewing a TV banner for safe area compliance.
 
-The image I'm giving you is the actual design with a safe area overlay already merged on top.
-- RED border areas around the edges = outside the safe zone
-- The center area = inside the safe zone
+The image is the actual design with a SEMI-TRANSPARENT RED MASK overlaid on the outer margins.
+- The red-tinted band along all four edges = OUTSIDE the safe zone (forbidden area for core elements)
+- The clear (un-tinted) center area = INSIDE the safe zone (safe)
+- The inner edge of the red band is the SAFE ZONE BOUNDARY line.
 
-Look at this single merged image and judge:
-Are any CORE ELEMENTS touching or overlapping the RED border areas?
+CRITICAL — do not confuse the overlay with the design:
+- This banner's own background may itself be red or dark. Do NOT judge by color alone.
+- The overlay is a uniform tinted band only along the 4 outer edges. Judge by POSITION (how close an element is to the image edge), not by whether something looks red.
+- Standard safe margins: left/right 80px, top/bottom 60px on a 1920x1080 canvas. The red band represents roughly that margin.
 
-CORE elements: main title text, body text, bullet points, product images, key information.
-IGNORE: background, gradients, decorative elements, left/right navigation arrows (< >), confirm buttons.
+Step by step:
+1. Identify each CORE element: main title text, body/benefit text, bullet lists, key product images, important info (phone numbers, dates).
+2. For each, check whether any part of it extends into the red-tinted edge band (crosses the safe zone boundary toward the image edge).
+3. If a core element touches or crosses into the red band on ANY side, flag it and name which element and which side.
 
-Be strict — if text or key visuals are visibly touching the red border, flag it.
+CORE elements to check: main title text, body text, bullet points, key product images, important info text.
+IGNORE: pure background fills/gradients, decorative particles, left/right navigation arrows (< >), confirm/close buttons.
+
+Be strict and literal. If the main title sits hard against the left edge, or footer text runs into the bottom band, that IS a violation — flag it even if the background is the same color.
 
 Return ONLY valid JSON:
 {
   "sections_pass3": [
-    {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
+    {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "어떤 요소가 어느 방향 안전영역을 침범했는지 구체적으로", "reason": "", "suggestion": "", "markerIds": []}
   ]
 }
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
+- 핵심 텍스트/비주얼이 안전영역을 명확히 침범 → 수정 권장 이상
+- 살짝 닿는 수준 → 검토 필요
+- 침범 없음 → 양호
 All text in Korean.`;
 
       call3 = fetch('https://api.anthropic.com/v1/messages', {
