@@ -195,6 +195,18 @@ All text in Korean.`;
 3. 버튼이 버튼 영역 파란 박스 안에 있는가
 4. 키 비주얼(메인 이미지)이 우측 메인 이미지 파란 박스 안에 배치되어 있는가
 
+【중요 — 검수 제외 항목】
+다음은 시스템에서 고정으로 들어가는 UI 요소로 검수 대상이 아닙니다. 무시하세요:
+- 상단 GNB 영역 (GENIE TV 로고, 검색/마이메뉴/영화.TV.VOD/월정액 등 메뉴)
+- 우측 상단 버튼들 (키즈랜드, NETFLIX, Disney+, TVING, YouTube, APPs, 설정, 알림 아이콘)
+
+【판단 대상】
+GNB와 고정 UI를 제외한 실제 배너 콘텐츠만 판단하세요:
+- 좌측의 서브 타이틀 텍스트
+- 좌측의 메인 타이틀 텍스트
+- 좌측의 버튼(바로보기 등)
+- 우측의 메인 비주얼 이미지
+
 【중요 — BOM 상세와 반대 개념】
 - 이것은 "침범하면 안 되는 안전영역"이 아닙니다.
 - 각 콘텐츠가 자기 지정 영역(파란 박스) "안에" 들어가야 하는 배치 가이드입니다.
@@ -296,9 +308,9 @@ All text in Korean.`;
       return (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst;
     }, '양호');
 
-    // 우선순위 항목 — verdict 포함해서 색상 매칭
+    // 우선순위 항목 — safearea/영역배치 제외, verdict 포함해서 색상 매칭
     const priorities = allSections
-      .filter(s => s.verdict !== '양호' && s.problem)
+      .filter(s => s.verdict !== '양호' && s.problem && s.id !== 'safearea')
       .sort((a,b) => (verdictPriority[b.verdict]||0) - (verdictPriority[a.verdict]||0))
       .slice(0, 3)
       .map(s => ({ text: s.problem, verdict: s.verdict }));
