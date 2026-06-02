@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
-    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, overlayBase64, intensity } = req.body || {};
+    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, serviceKey, overlayBase64 } = req.body || {};
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
     // ✅ design-guide-rules.json 로드
@@ -24,24 +24,34 @@ Spec check:
 - File size shown is a preview thumbnail — do NOT flag it.
 - Safe area: only flag CORE ELEMENTS (main text, key visuals) outside safe zone. Background/decorations are fine.` : '';
 
-    // ✅ 통합 디렉터 가이드 주입 (관점 분리 없음 — 단일 검수 기준 + 검수 강도)
+    // ✅ 서비스별 가이드 주입 (브랜드샵은 기존 디자이너/마케터/디렉터 기준 통합)
     const dg = rulesData?.directorGuidelines;
-    const intensityKey = ['하','중','상'].includes(intensity) ? intensity : '중';
+    const svc = serviceKey || '브랜드샵';
+
     let directorGuidelineText = '';
     if (dg) {
       const forbidden = dg['공통_절대금지'] || [];
-      const criteria = dg['검수기준'] || [];
-      const intensityNote = dg['검수강도']?.[intensityKey] || '';
+      // 브랜드샵: 디자이너+마케터+디렉터 기준 모두 적용 (기존 누적 기준)
+      const perspectiveKeys = ['디자이너', '마케터', '디렉터'];
+      let allCriteria = [];
+      perspectiveKeys.forEach(pk => {
+        const crit = dg[pk]?.['기준'] || [];
+        allCriteria = allCriteria.concat(crit);
+      });
       directorGuidelineText = [
         forbidden.length ? `\nABSOLUTE RULES (never violate):\n${forbidden.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
-        criteria.length ? `\nEVALUATION CRITERIA:\n${criteria.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
-        intensityNote ? `\nREVIEW INTENSITY — ${intensityKey}: ${intensityNote}` : '',
+        allCriteria.length ? `\nEVALUATION CRITERIA:\n${allCriteria.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
       ].filter(Boolean).join('\n');
     }
 
     const designNotes = specCheck?.expected?.designNotes;
     const designNoteText = (Array.isArray(designNotes) && designNotes.length > 0)
       ? `\nBanner-specific rules:\n${designNotes.map((n,i)=>`${i+1}. ${n}`).join('\n')}`
+      : '';
+
+    // ✅ 디자이너 메모 강조 — 의도/맥락을 반드시 반영
+    const memoText = (memo && memo.trim())
+      ? `\n【IMPORTANT — Designer's notes】The designer left the following notes about intent, context, or concerns. You MUST take these into account. If the designer explains something was intentional, respect it and do not flag it as a problem. If the designer asks you to check something specific, prioritize it:\n"${memo.trim()}"`
       : '';
 
     const imageContent = { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } };
@@ -55,7 +65,7 @@ Spec check:
 Design info:
 - Banner type: ${reviewType || 'unknown'}
 - Brand: ${brandName || 'unknown'}
-- Designer notes: ${memo || 'none'}
+${memoText}
 ${specNote}
 ${directorGuidelineText}
 ${designNoteText}
@@ -92,7 +102,7 @@ All text in Korean.`;
 
 Design info:
 - Banner type: ${reviewType || 'unknown'}
-- Designer notes: ${memo || 'none'}
+${memoText}
 ${directorGuidelineText}
 
 FOCUS ONLY ON visual finish and design quality — look at the IMAGES and VISUALS:
@@ -142,38 +152,35 @@ All text in Korean.`;
     let call3 = null;
     if (overlayBase64) {
       const overlayContent = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: overlayBase64 } };
-      const prompt3 = `You are reviewing a TV banner for safe area compliance.
+      const prompt3 = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 빨간색으로 합성한 것입니다.
 
-The image is the actual design with a SEMI-TRANSPARENT RED MASK overlaid on the outer margins.
-- The red-tinted band along all four edges = OUTSIDE the safe zone (forbidden area for core elements)
-- The clear (un-tinted) center area = INSIDE the safe zone (safe)
-- The inner edge of the red band is the SAFE ZONE BOUNDARY line.
+【이미지 해석】
+- 이미지 가장자리를 둘러싼 빨간색 띠 = 안전영역 바깥 (위험 구역)
+- 빨간 띠 안쪽 = 안전영역 (안전 구역)
+- 빨간 띠의 두께는 좌우 약 80px, 상하 약 60px 입니다.
 
-CRITICAL — do not confuse the overlay with the design:
-- This banner's own background may itself be red or dark. Do NOT judge by color alone.
-- The overlay is a uniform tinted band only along the 4 outer edges. Judge by POSITION (how close an element is to the image edge), not by whether something looks red.
-- Standard safe margins: left/right 80px, top/bottom 60px on a 1920x1080 canvas. The red band represents roughly that margin.
+【판단 방법 — 반드시 순서대로】
+1. 먼저 이미지에서 메인 타이틀(가장 큰 글자)을 찾으세요.
+2. 그 타이틀의 가장 왼쪽 글자가 빨간 띠에 닿거나 겹쳐 있는지 보세요.
+3. 본문 텍스트, 불릿 항목들의 왼쪽 끝도 빨간 띠에 닿는지 보세요.
+4. QR코드, 로고 등 핵심 요소도 빨간 띠에 닿는지 보세요.
 
-Step by step:
-1. Identify each CORE element: main title text, body/benefit text, bullet lists, key product images, important info (phone numbers, dates).
-2. For each, check whether any part of it extends into the red-tinted edge band (crosses the safe zone boundary toward the image edge).
-3. If a core element touches or crosses into the red band on ANY side, flag it and name which element and which side.
+【중요】
+- 텍스트나 핵심 요소가 빨간 띠에 조금이라도 닿거나 겹치면 → "수정 권장" 또는 "치명 리스크"
+- 핵심 요소가 모두 빨간 띠 안쪽(중앙 검은 영역)에 있으면 → "양호"
+- 배경 이미지, 그라데이션, 좌우 화살표(< >), 장식 요소가 빨간 띠에 걸치는 건 무시하세요.
 
-CORE elements to check: main title text, body text, bullet points, key product images, important info text.
-IGNORE: pure background fills/gradients, decorative particles, left/right navigation arrows (< >), confirm/close buttons.
+【주의】 타이틀이나 텍스트가 화면 왼쪽 끝에 바짝 붙어 있으면 거의 확실히 빨간 띠에 닿아 있는 것입니다. 꼼꼼히 보세요.
 
-Be strict and literal. If the main title sits hard against the left edge, or footer text runs into the bottom band, that IS a violation — flag it even if the background is the same color.
+problem 필드에는 어떤 요소가 어느 쪽 빨간 띠에 닿았는지 구체적으로 적으세요.
 
 Return ONLY valid JSON:
 {
   "sections_pass3": [
-    {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "어떤 요소가 어느 방향 안전영역을 침범했는지 구체적으로", "reason": "", "suggestion": "", "markerIds": []}
+    {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
   ]
 }
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
-- 핵심 텍스트/비주얼이 안전영역을 명확히 침범 → 수정 권장 이상
-- 살짝 닿는 수준 → 검토 필요
-- 침범 없음 → 양호
 All text in Korean.`;
 
       call3 = fetch('https://api.anthropic.com/v1/messages', {
@@ -182,7 +189,7 @@ All text in Korean.`;
         body: JSON.stringify({
           model, max_tokens: 1000, system: systemPrompt,
           messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
+            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: overlayBase64 } },
             { type: 'text', text: prompt3 }
           ]}]
         })
@@ -235,7 +242,12 @@ All text in Korean.`;
     // 안전영역 섹션 있으면 좌측 상단 고정 마커 추가
     if (p3?.sections_pass3?.length) {
       const safeVerdict = p3.sections_pass3[0]?.verdict;
-      const safeSeverity = safeVerdict === '치명 리스크' ? 'critical' : safeVerdict === '수정 권장' ? 'warning' : 'info';
+      const isViolation = safeVerdict && safeVerdict !== '양호';
+      // 안전영역은 정확한 가이드 위반이므로 위반 시 무조건 치명(빨강)
+      if (isViolation) {
+        p3.sections_pass3[0].verdict = '치명 리스크';
+      }
+      const safeSeverity = isViolation ? 'critical' : 'info';
       const safeMarkerId = markers1.length + markers2.length + 1;
       allMarkers.push({ id: safeMarkerId, col: 1, row: 1, severity: safeSeverity, label: '안전영역', comment: p3.sections_pass3[0]?.problem || '안전영역을 확인하세요' });
       p3.sections_pass3.forEach(s => { s.markerIds = [safeMarkerId]; });
@@ -251,12 +263,12 @@ All text in Korean.`;
       return (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst;
     }, '양호');
 
-    // 우선순위 항목
+    // 우선순위 항목 — verdict 포함해서 색상 매칭
     const priorities = allSections
       .filter(s => s.verdict !== '양호' && s.problem)
       .sort((a,b) => (verdictPriority[b.verdict]||0) - (verdictPriority[a.verdict]||0))
       .slice(0, 3)
-      .map(s => s.problem);
+      .map(s => ({ text: s.problem, verdict: s.verdict }));
 
     // finalComment — 문제 있는 섹션들의 suggestion 조합
     const problemSections = allSections.filter(s => s.verdict !== '양호' && s.suggestion);
