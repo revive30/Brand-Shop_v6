@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다.' });
 
   try {
-    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, serviceKey, overlayBase64 } = req.body || {};
+    const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, serviceKey, overlayBase64, overlayType } = req.body || {};
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
     // ✅ design-guide-rules.json 로드
@@ -148,11 +148,12 @@ All text in Korean.`;
       })
     });
 
-    // 3번째 호출: 안전영역 오버레이 분석
+    // 3번째 호출: 오버레이 분석 (타입별 분기)
     let call3 = null;
     if (overlayBase64) {
-      const overlayContent = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: overlayBase64 } };
-      const prompt3 = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 빨간색으로 합성한 것입니다.
+      const isZone = overlayType === 'zone';
+
+      const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 빨간색으로 합성한 것입니다.
 
 【이미지 해석】
 - 이미지 가장자리를 둘러싼 빨간색 띠 = 안전영역 바깥 (위험 구역)
@@ -182,6 +183,42 @@ Return ONLY valid JSON:
 }
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 All text in Korean.`;
+
+      const zonePrompt = `이 이미지는 ICP 빅배너 시안 위에 콘텐츠 배치 영역 가이드를 파란색으로 합성한 것입니다.
+
+【이미지 해석】
+파란색 박스들은 각 콘텐츠가 들어가야 하는 지정 영역입니다:
+- 좌측 상단의 가로로 긴 파란 박스 = "서브 타이틀" 영역
+- 그 아래 큰 파란 박스 = "메인 타이틀" 영역
+- 그 아래 작은 파란 박스 = "버튼" 영역
+- 우측의 큰 파란 박스 = "메인 이미지" 영역
+
+【판단 방법】
+각 콘텐츠 요소가 지정된 파란 영역 "안에" 제대로 배치되어 있는지 확인하세요.
+1. 서브 타이틀 텍스트가 좌측 상단 파란 박스 안에 들어가 있는가
+2. 메인 타이틀 텍스트가 메인 타이틀 파란 박스 안에 들어가 있는가
+3. 버튼이 버튼 영역 파란 박스 안에 있는가
+4. 키 비주얼(메인 이미지)이 우측 메인 이미지 파란 박스 안에 배치되어 있는가
+
+【중요 — BOM 상세와 반대 개념】
+- 이것은 "침범하면 안 되는 안전영역"이 아닙니다.
+- 각 콘텐츠가 자기 지정 영역(파란 박스) "안에" 들어가야 하는 배치 가이드입니다.
+- 콘텐츠가 파란 영역을 벗어나 있거나, 엉뚱한 위치에 있으면 → "수정 권장" 또는 "치명 리스크"
+- 각 콘텐츠가 지정 영역 안에 잘 배치되어 있으면 → "양호"
+
+problem 필드에는 어떤 콘텐츠가 어느 지정 영역을 벗어났는지 구체적으로 적으세요.
+reason 필드에는 왜 그렇게 판단했는지 적으세요.
+
+Return ONLY valid JSON:
+{
+  "sections_pass3": [
+    {"id": "safearea", "title": "영역 배치 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
+  ]
+}
+verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
+All text in Korean.`;
+
+      const prompt3 = isZone ? zonePrompt : safeareaPrompt;
 
       call3 = fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -249,7 +286,8 @@ All text in Korean.`;
       }
       const safeSeverity = isViolation ? 'critical' : 'info';
       const safeMarkerId = markers1.length + markers2.length + 1;
-      allMarkers.push({ id: safeMarkerId, col: 1, row: 1, severity: safeSeverity, label: '안전영역', comment: p3.sections_pass3[0]?.problem || '안전영역을 확인하세요' });
+      const safeLabel = overlayType === 'zone' ? '영역 배치' : '안전영역';
+      allMarkers.push({ id: safeMarkerId, col: 1, row: 1, severity: safeSeverity, label: safeLabel, comment: p3.sections_pass3[0]?.problem || (overlayType==='zone'?'영역 배치를 확인하세요':'안전영역을 확인하세요') });
       p3.sections_pass3.forEach(s => { s.markerIds = [safeMarkerId]; });
     }
 
