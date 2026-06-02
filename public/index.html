@@ -293,9 +293,12 @@ function checkSpec(){
   if(spec?.overlay){
     overlayImg.src=spec.overlay;
     overlayImg.dataset.overlayPath=spec.overlay;
+    overlayImg.dataset.overlayType=spec.overlayType||'safearea';
     overlayImg.style.display='block';
     overlayBtn.style.display='block';
-    overlayBtn.textContent='안전영역 숨기기';
+    const lbl = (spec.overlayType==='zone') ? '영역 가이드' : '안전영역';
+    overlayBtn.textContent=lbl+' 숨기기';
+    overlayBtn.dataset.label=lbl;
     overlayBtn.classList.add('active');
   } else {
     overlayBtn.style.display='none';
@@ -319,9 +322,10 @@ function checkSpec(){
 
 function toggleOverlay(){
   const btn=$('overlayBtn'), img=$('overlayImg');
+  const lbl=btn.dataset.label||'안전영역';
   const isOn=img.style.display!=='none';
   img.style.display=isOn?'none':'block';
-  btn.textContent=isOn?'안전영역 보기':'안전영역 숨기기';
+  btn.textContent=isOn?(lbl+' 보기'):(lbl+' 숨기기');
   btn.classList.toggle('active',!isOn);
 }
 async function handleFile(f){
@@ -508,7 +512,7 @@ async function startReview(){
       imageBase64:b64,mimeType:file.type,reviewType:$('bannerType').value,
       brandName:'',purpose:'',benefit:'',cta:'',memo:$('memo').value,
       specCheck:spec,serviceKey:SERVICE_CONFIG[service]?.category||'브랜드샵',
-      overlayBase64
+      overlayBase64, overlayType:$('overlayImg').dataset.overlayType||'safearea'
     })});
     const text=await res.text();clearInterval(timer);
     if(!res.ok){let msg=text;try{msg=JSON.parse(text)?.error||text}catch(e){}throw new Error(msg);}
