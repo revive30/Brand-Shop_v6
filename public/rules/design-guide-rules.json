@@ -77,7 +77,8 @@
         "확인/닫기 버튼은 공통 템플릿 형식을 따를 것",
         "이 화면은 사용자가 내용을 읽고 확인 후 닫거나 페이지 전환하는 구조다. 강한 CTA가 없어도 정상이며 CTA 부재를 문제로 지적하지 않는다."
       ],
-      "overlay": "/overlays/1920x1080_safety_zone.png"
+      "overlay": "/overlays/1920x1080_safety_zone.png",
+      "overlayType": "safearea"
     },
     "BOM 상세 퀴즈": {
       "width": 1920,
@@ -321,7 +322,8 @@
         "보여주고자 하는 이미지/텍스트가 적절한 비율로 자연스럽게 보이도록 디자인",
         "콘텐츠 정보와 무관한 이미지 사용 제외"
       ],
-      "overlay": "/overlays/1920x900_safety_zone.png"
+      "overlay": "/overlays/1920x900_safety_zone.png",
+      "overlayType": "zone"
     }
   },
   "categories": {
@@ -352,7 +354,8 @@
           "보여주고자 하는 이미지/텍스트가 적절한 비율로 자연스럽게 보이도록 디자인",
           "콘텐츠 정보와 무관한 이미지 사용 제외"
         ],
-        "overlay": "/overlays/1920x900_safety_zone.png"
+        "overlay": "/overlays/1920x900_safety_zone.png",
+        "overlayType": "zone"
       },
       "ICP 1단 배너": {
         "width": 1760,
@@ -424,7 +427,8 @@
           "확인/닫기 버튼은 공통 템플릿 형식을 따를 것",
           "이 화면은 사용자가 내용을 읽고 확인 후 닫거나 페이지 전환하는 구조다. 강한 CTA가 없어도 정상이며 CTA 부재를 문제로 지적하지 않는다."
         ],
-        "overlay": "/overlays/1920x1080_safety_zone.png"
+        "overlay": "/overlays/1920x1080_safety_zone.png",
+        "overlayType": "safearea"
       }
     },
     "지니TV": {
