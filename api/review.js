@@ -24,23 +24,18 @@ Spec check:
 - File size shown is a preview thumbnail — do NOT flag it.
 - Safe area: only flag CORE ELEMENTS (main text, key visuals) outside safe zone. Background/decorations are fine.` : '';
 
-    // ✅ 서비스별 가이드 주입 (브랜드샵은 기존 디자이너/마케터/디렉터 기준 통합)
+    // ✅ 서비스별 가이드 주입
     const dg = rulesData?.directorGuidelines;
     const svc = serviceKey || '브랜드샵';
 
     let directorGuidelineText = '';
     if (dg) {
       const forbidden = dg['공통_절대금지'] || [];
-      // 브랜드샵: 디자이너+마케터+디렉터 기준 모두 적용 (기존 누적 기준)
-      const perspectiveKeys = ['디자이너', '마케터', '디렉터'];
-      let allCriteria = [];
-      perspectiveKeys.forEach(pk => {
-        const crit = dg[pk]?.['기준'] || [];
-        allCriteria = allCriteria.concat(crit);
-      });
+      const svcGuide = dg[svc] || {};
+      const criteria = svcGuide['기준'] || [];
       directorGuidelineText = [
         forbidden.length ? `\nABSOLUTE RULES (never violate):\n${forbidden.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
-        allCriteria.length ? `\nEVALUATION CRITERIA:\n${allCriteria.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
+        criteria.length ? `\nEVALUATION CRITERIA:\n${criteria.map((g,i)=>`${i+1}. ${g}`).join('\n')}` : '',
       ].filter(Boolean).join('\n');
     }
 
