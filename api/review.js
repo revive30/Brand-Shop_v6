@@ -8,7 +8,6 @@ export default async function handler(req, res) {
     const { imageBase64, mimeType, reviewType, brandName, memo, specCheck, serviceKey, overlayBase64, overlayType } = req.body || {};
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
-    // ✅ design-guide-rules.json 로드
     let rulesData = {};
     try {
       const fs = await import('fs');
@@ -24,7 +23,6 @@ Spec check:
 - File size shown is a preview thumbnail — do NOT flag it.
 - Safe area: only flag CORE ELEMENTS (main text, key visuals) outside safe zone. Background/decorations are fine.` : '';
 
-    // ✅ 서비스별 가이드 주입
     const dg = rulesData?.directorGuidelines;
     const svc = serviceKey || '브랜드샵';
 
@@ -44,7 +42,6 @@ Spec check:
       ? `\nBanner-specific rules:\n${designNotes.map((n,i)=>`${i+1}. ${n}`).join('\n')}`
       : '';
 
-    // ✅ 디자이너 메모 강조 — 의도/맥락을 반드시 반영
     const memoText = (memo && memo.trim())
       ? `\n【IMPORTANT — Designer's notes】The designer left the following notes about intent, context, or concerns. You MUST take these into account. If the designer explains something was intentional, respect it and do not flag it as a problem. If the designer asks you to check something specific, prioritize it:\n"${memo.trim()}"`
       : '';
@@ -52,9 +49,6 @@ Spec check:
     const imageContent = { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } };
     const systemPrompt = 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble.';
 
-    // ============================
-    // 1번 호출: 무드·브랜드톤·정보전달·TV환경
-    // ============================
     const prompt1 = `You are a senior TV design director. Review the OVERALL design.
 
 Design info:
@@ -90,9 +84,6 @@ verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 severity values: critical, warning, info
 All text in Korean.`;
 
-    // ============================
-    // 2번 호출: 정렬·디테일·완성도 집중
-    // ============================
     const prompt2 = `You are a senior TV design director. Review ONLY the visual quality and alignment details.
 
 Design info:
@@ -124,7 +115,6 @@ verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 severity values: critical, warning, info
 All text in Korean.`;
 
-    // 두 호출 병렬 실행 (오버레이 있으면 3번째 호출 추가)
     const call1 = fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
@@ -143,7 +133,6 @@ All text in Korean.`;
       })
     });
 
-    // 3번째 호출: 오버레이 분석 (타입별 분기)
     let call3 = null;
     if (overlayBase64) {
       const isZone = overlayType === 'zone';
@@ -233,7 +222,8 @@ All text in Korean.`;
         body: JSON.stringify({
           model, max_tokens: 1000, system: systemPrompt,
           messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: overlayBase64 } },
+            // JPEG로 변경
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
             { type: 'text', text: prompt3 }
           ]}]
         })
@@ -262,7 +252,6 @@ All text in Korean.`;
     const p2 = parseJSON(data2);
     const p3 = data3 ? parseJSON(data3) : null;
 
-    // 결과 합치기 — TV환경·안전영역은 맨 뒤로
     const tvSection = (p1?.sections_pass1 || []).filter(s => s.id === 'tv');
     const mainSections = (p1?.sections_pass1 || []).filter(s => s.id !== 'tv');
     const allSections = [
@@ -272,7 +261,6 @@ All text in Korean.`;
       ...(p3?.sections_pass3 || [])
     ];
 
-    // 마커 ID를 숫자로 강제 변환
     const normalizeMarkers = (markers) => (markers || []).map((m, i) => ({
       ...m,
       id: parseInt(String(m.id).replace(/\D/g, '')) || (i + 1)
@@ -280,14 +268,11 @@ All text in Korean.`;
 
     const markers1 = normalizeMarkers(p1?.markers_pass1);
     const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length }));
-    // 안전영역 마커는 없음 — 오버레이로 눈으로 확인
     const allMarkers = [...markers1, ...markers2];
 
-    // 안전영역 섹션 있으면 좌측 상단 고정 마커 추가
     if (p3?.sections_pass3?.length) {
       const safeVerdict = p3.sections_pass3[0]?.verdict;
       const isViolation = safeVerdict && safeVerdict !== '양호';
-      // 안전영역은 정확한 가이드 위반이므로 위반 시 무조건 치명(빨강)
       if (isViolation) {
         p3.sections_pass3[0].verdict = '치명 리스크';
       }
@@ -302,20 +287,17 @@ All text in Korean.`;
       if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length);
     });
 
-    // 전체 verdict 계산
     const verdictPriority = { '치명 리스크': 4, '수정 권장': 3, '검토 필요': 2, '양호': 1 };
     const worstVerdict = allSections.reduce((worst, s) => {
       return (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst;
     }, '양호');
 
-    // 우선순위 항목 — safearea/영역배치 제외, verdict 포함해서 색상 매칭
     const priorities = allSections
       .filter(s => s.verdict !== '양호' && s.problem && s.id !== 'safearea')
       .sort((a,b) => (verdictPriority[b.verdict]||0) - (verdictPriority[a.verdict]||0))
       .slice(0, 3)
       .map(s => ({ text: s.problem, verdict: s.verdict }));
 
-    // finalComment — 문제 있는 섹션들의 suggestion 조합
     const problemSections = allSections.filter(s => s.verdict !== '양호' && s.suggestion);
     const finalComment = problemSections.length > 0
       ? problemSections.map(s => s.suggestion).join(' ')
