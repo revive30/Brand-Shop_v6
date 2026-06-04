@@ -107,7 +107,6 @@ select option{background:var(--surface2)}
 .mk-legend-inline{display:flex;gap:10px;margin-left:auto}
 .mli{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text3)}
 .mli-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-/* 섹션 */
 .sections-sec{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
 .sec-card{border-radius:var(--r);border:1px solid var(--border);background:var(--surface);overflow:hidden}
 .sec-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;transition:background .12s}
@@ -288,7 +287,6 @@ function checkSpec(){
   const cat=SERVICE_CONFIG[service]?.category, type=$('bannerType').value;
   const spec=(rules.categories?.[cat]?.[type]) || rules.items?.[type];
 
-  // 오버레이는 배너 선택만 해도 바로 세팅
   const overlayBtn=$('overlayBtn'), overlayImg=$('overlayImg');
   if(spec?.overlay){
     overlayImg.src=spec.overlay;
@@ -449,7 +447,6 @@ function renderBottom(p){
 async function startReview(){
   const spec=checkSpec();if(!spec)return;
 
-  // 사이즈 불일치 체크 — 치명 경고
   if(!spec.result.sizeOk){
     const expected = spec.expected.width ? `${spec.expected.width}×${spec.expected.height}` : `H ${spec.expected.height}`;
     const actual = `${spec.actual.width}×${spec.actual.height}`;
@@ -476,7 +473,7 @@ async function startReview(){
   try{
     const b64=await f2b64(file);
 
-    // 오버레이가 있으면 시안 + 오버레이 합성해서 1장으로 만들기
+    // 오버레이 합성 — JPEG 0.7로 저장해서 용량 최소화
     let overlayBase64 = null;
     const ovImg = $('overlayImg');
     if(ovImg && ovImg.dataset.overlayPath){
@@ -486,14 +483,12 @@ async function startReview(){
         canvas.height = imgInfo.h;
         const ctx = canvas.getContext('2d');
 
-        // 시안: file에서 직접 blob URL로 그리기
         const sianImage = new Image();
         const sianUrl = URL.createObjectURL(file);
         await new Promise((res,rej)=>{sianImage.onload=res;sianImage.onerror=rej;sianImage.src=sianUrl;});
         ctx.drawImage(sianImage, 0, 0, canvas.width, canvas.height);
         URL.revokeObjectURL(sianUrl);
 
-        // 오버레이: fetch → blob → Image
         const ovResp = await fetch(ovImg.dataset.overlayPath);
         const ovBlob = await ovResp.blob();
         const ovUrl = URL.createObjectURL(ovBlob);
@@ -504,7 +499,8 @@ async function startReview(){
         ctx.globalAlpha = 1.0;
         URL.revokeObjectURL(ovUrl);
 
-        overlayBase64 = canvas.toDataURL('image/png').split(',')[1];
+        // PNG → JPEG 0.7로 변경해서 용량 절감
+        overlayBase64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
       } catch(e) { console.warn('overlay merge failed', e); }
     }
 
