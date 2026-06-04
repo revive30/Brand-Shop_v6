@@ -279,7 +279,9 @@ All text in Korean.`;
       const safeSeverity = isViolation ? 'critical' : 'info';
       const safeMarkerId = markers1.length + markers2.length + 1;
       const safeLabel = overlayType === 'zone' ? '영역 배치' : '안전영역';
-      allMarkers.push({ id: safeMarkerId, col: 1, row: 1, severity: safeSeverity, label: safeLabel, comment: p3.sections_pass3[0]?.problem || (overlayType==='zone'?'영역 배치를 확인하세요':'안전영역을 확인하세요') });
+      const safeCol = overlayType === 'zone' ? 2 : 1;
+      const safeRow = overlayType === 'zone' ? 5 : 1;
+      allMarkers.push({ id: safeMarkerId, col: safeCol, row: safeRow, severity: safeSeverity, label: safeLabel, comment: p3.sections_pass3[0]?.problem || (overlayType==='zone'?'영역 배치를 확인하세요':'안전영역을 확인하세요') });
       p3.sections_pass3.forEach(s => { s.markerIds = [safeMarkerId]; });
     }
 
