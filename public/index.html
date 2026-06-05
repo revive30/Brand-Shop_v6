@@ -653,15 +653,20 @@ async function exportPDF(){
         <div style="font-size:12px;color:#555;line-height:1.7;">${parsed.finalComment}</div>
       </div>`:'';
 
+    const vColor = verdictColor(parsed.verdict);
+    const vBg = verdictBg(parsed.verdict);
+    const vText = parsed.verdict || '';
+    const bannerTypeText = $('bannerType').value || '';
+
     container.innerHTML=`
       <div style="background:#0f0f12;padding:20px 24px;border-radius:10px;margin-bottom:24px;">
         <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;">디자인 사전 검수 리포트</div>
-        <div style="font-size:12px;color:#9494a4;">${dateStr} &nbsp;·&nbsp; ${$('bannerType').value||''}</div>
+        <div style="font-size:12px;color:#9494a4;">${dateStr} &nbsp;·&nbsp; ${bannerTypeText}</div>
       </div>
       ${imgHtml}
-      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;background:${verdictBg(parsed.verdict)};border:1px solid ${verdictColor(parsed.verdict)}33;margin-bottom:20px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:${verdictColor(parsed.verdict)};flex-shrink:0;"></span>
-        <span style="font-weight:800;font-size:14px;color:${verdictColor(parsed.verdict)};">종합 판정: ${parsed.verdict}</span>
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;background:${vBg};border:1px solid ${vColor};margin-bottom:20px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${vColor};flex-shrink:0;display:inline-block;"></span>
+        <span style="font-weight:800;font-size:14px;color:${vColor};">종합 판정: ${vText}</span>
       </div>
       <div style="font-size:15px;font-weight:700;margin-bottom:12px;">검수 결과</div>
       ${sectionsHtml}
