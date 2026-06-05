@@ -435,7 +435,7 @@ function renderBottom(p){
   const _html=`
     <div class="sections-sec">${sections}</div>
     <div class="bottom-cards">
-      ${prios?`<div class="b-card"><div class="b-card-title">우선 수정 항목</div>${prios}</div>`:'<div></div>'}
+      <div class="b-card"><div class="b-card-title">우선 수정 항목</div>${prios||'<div style="display:flex;align-items:center;gap:8px;padding:12px 0;font-size:13px;color:var(--green)"><span style="font-size:16px">✓</span> 수정이 필요한 항목이 없습니다</div>'}</div>
       ${p.finalComment?`<div class="b-card"><div class="b-card-title">디렉터 코멘트</div><div class="final-text">${p.finalComment}</div></div>`:'<div></div>'}
     </div>
     <div class="action-row">
