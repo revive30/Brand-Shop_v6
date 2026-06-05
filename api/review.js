@@ -265,7 +265,8 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
 
       if (critical.length > 0) {
         verdictZone = '치명 리스크'; markerSeverity = 'critical';
-        problemText = `${critical.join(', ')}이(가) 지정된 배치 영역을 벗어났습니다.`;
+        const missingItems = critical.filter(l => coordBadSet.has(Object.keys(labelMap).find(k => labelMap[k] === l)));
+        problemText = `${critical.join(', ')}이(가) 지정된 배치 영역 안에 배치되지 않았습니다.`;
         if (caution.length > 0) problemText += ` ${caution.join(', ')}도 확인이 필요합니다.`;
         suggestionText = `${critical.join(', ')}을(를) 각각의 지정 영역 안에 배치해주세요.`;
       } else if (onlyButtonIssue) {
@@ -294,7 +295,7 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst, '양호');
 
     const priorities = allSections
-      .filter(s => s.verdict !== '양호' && s.problem && s.id !== 'safearea')
+      .filter(s => s.verdict !== '양호' && s.problem)
       .sort((a,b) => (verdictPriority[b.verdict]||0) - (verdictPriority[a.verdict]||0))
       .slice(0, 3)
       .map(s => ({ text: s.problem, verdict: s.verdict }));
