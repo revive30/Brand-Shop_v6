@@ -148,39 +148,103 @@ All text in Korean.`;
     const zoneCoords = specCheck?.expected?.zoneCoords;
 
     if (overlayBase64 && overlayType === 'zone' && zoneCoords) {
-      // zone 타입: AI한테 각 요소 위치(픽셀 좌표)만 물어보고 코드에서 판단
-      const zonePrompt = `You are analyzing a TV banner image (1920x900px).
+      // zone 타입: 좌표 비교 + YES/NO 시각 확인 병렬 실행
+      const coordPrompt = `You are analyzing a TV banner image (1920x900px).
+Identify pixel coordinates (x, y, w, h) of these 4 elements. x=0 is left, y=0 is top.
+IGNORE: Top GNB bar, top-right icons (NETFLIX, Disney+, TVING, YouTube, APPs etc).
+Find ONLY: 1.subtitle(small text above title) 2.title(main large text) 3.button(CTA button) 4.mainImage(right side key visual)
+If NOT present set all to -1.
+Return ONLY valid JSON: {"subtitle":{"x":0,"y":0,"w":0,"h":0},"title":{"x":0,"y":0,"w":0,"h":0},"button":{"x":0,"y":0,"w":0,"h":0},"mainImage":{"x":0,"y":0,"w":0,"h":0}}`;
 
-Identify the pixel coordinates of these 4 content elements. For each element, give the bounding box (x, y, width, height) where x=0 is left edge, y=0 is top edge.
+      const yesnoPrompt = `이 이미지는 ICP 빅배너 시안 위에 콘텐츠 배치 가이드를 올리브색(황록색) 박스로 합성한 것입니다.
+올리브색 박스 4개: 좌측상단 가로긴박스=서브타이틀, 그아래큰박스=메인타이틀, 그아래작은박스=버튼, 우측큰박스=메인이미지
+각 박스 안에 해당 콘텐츠가 있는지 YES/NO/PARTIAL로 판단하세요.
+IGNORE: 상단 GNB(GENIE TV 로고, 메뉴, 우측 아이콘들)
+Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImage":"YES"}`;
 
-IGNORE these fixed UI elements (they are system UI, not banner content):
-- Top GNB bar: GENIE TV logo, search/menu/VOD/subscription navigation menus
-- Top-right buttons: Kidzland, NETFLIX, Disney+, TVING, YouTube, APPs, settings, notification icons
-
-Find ONLY these banner content elements:
-1. subtitle: The smaller text above the main title (sub-headline)
-2. title: The main large title text
-3. button: The CTA button (바로보기 or similar)
-4. mainImage: The key visual image on the right side
-
-If an element is NOT present in the image, set all values to -1.
-
-Return ONLY valid JSON:
-{
-  "subtitle": {"x": 0, "y": 0, "w": 0, "h": 0},
-  "title": {"x": 0, "y": 0, "w": 0, "h": 0},
-  "button": {"x": 0, "y": 0, "w": 0, "h": 0},
-  "mainImage": {"x": 0, "y": 0, "w": 0, "h": 0}
-}`;
-
-      call3 = fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model, max_tokens: 500, system: systemPrompt,
-          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: zonePrompt }] }]
+      const [r3a, r3b] = await Promise.all([
+        fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model, max_tokens: 300, system: systemPrompt,
+            messages: [{ role: 'user', content: [imageContent, { type: 'text', text: coordPrompt }] }] })
+        }),
+        fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model, max_tokens: 200, system: systemPrompt,
+            messages: [{ role: 'user', content: [
+              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
+              { type: 'text', text: yesnoPrompt }
+            ]}] })
         })
+      ]);
+      const [d3a, d3b] = await Promise.all([r3a.json(), r3b.json()]);
+      const coordResult = parseJSON(d3a);
+      const yesnoResult = parseJSON(d3b);
+
+      const isInZone = (el, zone) => {
+        if (!el || el.x < 0) return null;
+        const m = 0.2;
+        const cx = el.x + el.w/2, cy = el.y + el.h/2;
+        return cx >= zone.x - zone.w*m && cx <= zone.x + zone.w*(1+m)
+            && cy >= zone.y - zone.h*m && cy <= zone.y + zone.h*(1+m);
+      };
+      const labelMap = { subtitle:'서브 타이틀', title:'메인 타이틀', button:'버튼', mainImage:'메인 이미지' };
+      const zChecks = [
+        { key:'subtitle', zone:zoneCoords.subtitleZone },
+        { key:'title',    zone:zoneCoords.titleZone },
+        { key:'button',   zone:zoneCoords.buttonZone },
+        { key:'mainImage',zone:zoneCoords.mainImageZone },
+      ];
+
+      const coordBadSet = new Set(), yesnoBadSet = new Set();
+      for (const c of zChecks) {
+        const el = coordResult?.[c.key];
+        if (!el || el.x < 0) coordBadSet.add(c.key);
+        else if (isInZone(el, c.zone) === false) coordBadSet.add(c.key);
+        const v = (yesnoResult?.[c.key] || '').toUpperCase();
+        if (v === 'NO' || v === 'PARTIAL') yesnoBadSet.add(c.key);
+      }
+
+      const critical = [], caution = [];
+      for (const c of zChecks) {
+        const coordBad = coordBadSet.has(c.key), yesnoBad = yesnoBadSet.has(c.key);
+        if (coordBad && yesnoBad) critical.push(labelMap[c.key]);
+        else if (coordBad || yesnoBad) caution.push(labelMap[c.key]);
+      }
+
+      const hasAnyIssue = critical.length > 0 || caution.length > 0;
+      const safeMarkerId = allMarkers.length + 1;
+      const nonButtonCaution = caution.filter(l => l !== '버튼');
+      const onlyButtonIssue = critical.length === 0 && caution.length > 0 && nonButtonCaution.length === 0;
+
+      let verdictZone = '양호', markerSeverity = 'info', problemText = '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.', suggestionText = '';
+      if (critical.length > 0) {
+        verdictZone = '치명 리스크'; markerSeverity = 'critical';
+        problemText = `${critical.join(', ')}이(가) 지정된 배치 영역을 벗어났습니다.`;
+        if (caution.length > 0) problemText += ` ${caution.join(', ')}도 확인이 필요합니다.`;
+        suggestionText = `${critical.join(', ')}을(를) 각각의 지정 영역 안에 배치해주세요.`;
+      } else if (onlyButtonIssue) {
+        verdictZone = '검토 필요'; markerSeverity = 'info';
+        problemText = '버튼 영역이 비어있습니다. 개발에서 별도 삽입되지만 디자인 가이드를 확인하세요.';
+        suggestionText = problemText;
+      } else if (caution.length > 0) {
+        verdictZone = '수정 권장'; markerSeverity = 'warning';
+        problemText = `${caution.join(', ')} 배치를 확인해주세요.`;
+        suggestionText = problemText;
+      }
+
+      allSections.push({
+        id:'safearea', title:'영역 배치 준수', verdict:verdictZone,
+        cause: hasAnyIssue ? '콘텐츠 영역 이탈' : null,
+        problem: hasAnyIssue ? problemText : '',
+        reason: hasAnyIssue ? '좌표 비교 및 시각 확인 두 방식으로 검증한 결과입니다.' : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.',
+        suggestion: suggestionText, markerIds: hasAnyIssue ? [safeMarkerId] : []
       });
+      if (hasAnyIssue) allMarkers.push({ id:safeMarkerId, col:2, row:5, severity:markerSeverity, label:'영역 배치', comment:problemText });
+      console.log('[zone] critical:', critical, 'caution:', caution);
+
     } else if (overlayBase64 && overlayType === 'safearea') {
       // safearea 타입: 기존 방식 유지
       const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 합성한 것입니다.
@@ -272,7 +336,6 @@ All text in Korean.`;
       const checks = [
         { key: 'subtitle', zone: zoneCoords.subtitleZone, label: '서브 타이틀' },
         { key: 'title',    zone: zoneCoords.titleZone,    label: '메인 타이틀' },
-        { key: 'button',   zone: zoneCoords.buttonZone,   label: '버튼' },
         { key: 'mainImage',zone: zoneCoords.mainImageZone,label: '메인 이미지' },
       ];
 
@@ -281,7 +344,9 @@ All text in Korean.`;
       for (const c of checks) {
         const el = elements[c.key];
         if (!el || el.x < 0) {
-          if (c.key !== 'mainImage') missing.push(c.label);
+          if (c.key === 'subtitle' || c.key === 'title') missing.push(c.label);
+          // 버튼은 개발에서 별도 삽입되므로 missing이 아닌 별도 처리
+          if (c.key === 'button') missing.push('버튼(개발 삽입 예정 — 디자인 가이드 확인 권장)');
           continue;
         }
         const ok = isInZone(el, c.zone);
@@ -299,10 +364,11 @@ All text in Korean.`;
         ? `${[...missing, ...violations].join(', ')}을(를) 각각의 지정 영역 안에 배치해주세요.`
         : '';
 
+      const onlyButtonMissing = missing.length === 1 && missing[0].startsWith('버튼') && violations.length === 0;
       const zoneSection = {
         id: 'safearea',
         title: '영역 배치 준수',
-        verdict: hasViolation ? '치명 리스크' : '양호',
+        verdict: !hasViolation ? '양호' : onlyButtonMissing ? '검토 필요' : '치명 리스크',
         cause: hasViolation ? '콘텐츠 영역 이탈' : null,
         problem: hasViolation ? problemText : '',
         reason: hasViolation ? '배치 가이드 기준 좌표와 비교한 결과입니다.' : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.',
@@ -315,7 +381,7 @@ All text in Korean.`;
       if (hasViolation) {
         allMarkers.push({
           id: safeMarkerId, col: 2, row: 5,
-          severity: 'critical', label: '영역 배치',
+          severity: onlyButtonMissing ? 'info' : 'critical', label: '영역 배치',
           comment: problemText
         });
       }
