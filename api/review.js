@@ -25,7 +25,6 @@ Spec check:
 
     const dg = rulesData?.directorGuidelines;
     const svc = serviceKey || '브랜드샵';
-
     let directorGuidelineText = '';
     if (dg) {
       const forbidden = dg['공통_절대금지'] || [];
@@ -39,18 +38,20 @@ Spec check:
 
     const designNotes = specCheck?.expected?.designNotes;
     const designNoteText = (Array.isArray(designNotes) && designNotes.length > 0)
-      ? `\nBanner-specific rules:\n${designNotes.map((n,i)=>`${i+1}. ${n}`).join('\n')}`
-      : '';
+      ? `\nBanner-specific rules:\n${designNotes.map((n,i)=>`${i+1}. ${n}`).join('\n')}` : '';
 
     const memoText = (memo && memo.trim())
-      ? `\n【IMPORTANT — Designer's notes】The designer left the following notes about intent, context, or concerns. You MUST take these into account. If the designer explains something was intentional, respect it and do not flag it as a problem. If the designer asks you to check something specific, prioritize it:\n"${memo.trim()}"`
-      : '';
+      ? `\n【IMPORTANT — Designer's notes】The designer left the following notes. You MUST take these into account. If intentional, respect it and do not flag it:\n"${memo.trim()}"` : '';
 
     const imageContent = { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } };
     const systemPrompt = 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble.';
 
-    const prompt1 = `You are a senior TV design director. Review the OVERALL design.
+    const GNB_IGNORE = `CRITICAL — DO NOT REVIEW these system UI elements (fixed platform UI, not banner content):
+- Top GNB: GENIE TV logo, 검색/마이메뉴/영화.TV.VOD/월정액/무료/키즈랜드/혜택 menus
+- Top-right icons: 키즈랜드, NETFLIX, Disney+, TVING, YouTube, APPs, settings, notification bell
+Ignore them completely. Never mention them.`;
 
+    const prompt1 = `You are a senior TV design director. Review the OVERALL design.
 Design info:
 - Banner type: ${reviewType || 'unknown'}
 - Brand: ${brandName || 'unknown'}
@@ -59,132 +60,67 @@ ${specNote}
 ${directorGuidelineText}
 ${designNoteText}
 
-CRITICAL — DO NOT REVIEW these system UI elements (they are fixed platform UI, not banner content):
-- Top GNB: GENIE TV logo, 검색/마이메뉴/영화.TV.VOD/월정액/무료/키즈랜드/혜택 menus
-- Top-right icons: 키즈랜드, NETFLIX, Disney+, TVING, YouTube, APPs, settings, notification bell
-Ignore them completely. Never mention them.
+${GNB_IGNORE}
 
-FOCUS ON these 3 areas with detailed analysis:
+FOCUS ON these 3 areas:
 1. TV 시청 환경 적합성 — 3m 거리에서 한눈에 읽히는가, 텍스트 양이 적절한가, 레이아웃이 단순하고 명확한가
-2. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가, 색감·무드·톤앤매너가 어울리는가, 이벤트 성격과 비주얼이 맞는가. 양호여도 구체적으로 어떤 점이 잘 됐는지 설명할 것.
-3. 정보 전달 & 위계 — 핵심 메시지가 명확한가, 시선 흐름이 자연스러운가, 타이틀·본문·부가정보 위계가 느껴지는가
+2. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가. 양호여도 구체적으로 어떤 점이 잘 됐는지 설명할 것.
+3. 정보 전달 & 위계 — 핵심 메시지가 명확한가, 시선 흐름이 자연스러운가
 
 DO NOT comment on: alignment details, spacing measurements, font sizes, QR codes, confirm buttons, navigation arrows.
-If nothing is wrong in a section, say 양호 — but still fill in the "reason" field explaining why it looks good. Do not manufacture problems.
+If nothing is wrong, say 양호 but fill in the "reason" field. Do not manufacture problems.
 
-For markers: 10x10 grid (col 1-10 left→right, row 1-10 top→bottom). IMPORTANT: For each marker, first identify the specific element you flagged as a problem, then look at where that element actually appears in the image, and place the marker at that exact grid position. Do not guess — look at the element you just described.
+Markers use 10x10 grid (col 1-10 left→right, row 1-10 top→bottom). Place marker at the exact position of the element you flagged.
 
 Return ONLY valid JSON:
-{
-  "sections_pass1": [
-    {"id": "tv", "title": "TV 시청 환경 적합성", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []},
-    {"id": "brand", "title": "브랜드 톤 & 무드", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []},
-    {"id": "hierarchy", "title": "정보 전달 & 위계", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
-  ],
-  "markers_pass1": [
-    {"id": 1, "col": 3, "row": 2, "severity": "warning", "label": "레이블", "comment": "구체적 문제 2문장"}
-  ]
-}
+{"sections_pass1":[{"id":"tv","title":"TV 시청 환경 적합성","verdict":"양호","cause":null,"problem":"","reason":"","suggestion":"","markerIds":[]},{"id":"brand","title":"브랜드 톤 & 무드","verdict":"양호","cause":null,"problem":"","reason":"","suggestion":"","markerIds":[]},{"id":"hierarchy","title":"정보 전달 & 위계","verdict":"양호","cause":null,"problem":"","reason":"","suggestion":"","markerIds":[]}],"markers_pass1":[{"id":1,"col":3,"row":2,"severity":"warning","label":"레이블","comment":"구체적 문제 2문장"}]}
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 severity values: critical, warning, info
 All text in Korean.`;
 
-    const prompt2 = `You are a senior TV design director. Review ONLY the visual quality and alignment details.
-
+    const prompt2 = `You are a senior TV design director. Review ONLY visual quality.
 Design info:
 - Banner type: ${reviewType || 'unknown'}
 ${memoText}
 ${directorGuidelineText}
 
-CRITICAL — DO NOT REVIEW these system UI elements (they are fixed platform UI, not banner content):
-- Top GNB: GENIE TV logo, 검색/마이메뉴/영화.TV.VOD/월정액/무료/키즈랜드/혜택 menus
-- Top-right icons: 키즈랜드, NETFLIX, Disney+, TVING, YouTube, APPs, settings, notification bell
-Ignore them completely. Never mention them.
+${GNB_IGNORE}
 
-FOCUS ONLY ON visual finish and design quality — look at the IMAGES and VISUALS:
-- 이미지·비주얼 합성 품질 — 그림자 방향·광원·누끼 처리가 일관성 있는가. 어색하게 붙여넣은 느낌은 없는가
-- 색상 조합 — 색상 충돌, 촌스러운 조합이 있는가
-- 비주얼 요소 완성도 — 제품 이미지, 캐릭터, 그래픽 요소의 퀄리티가 균일한가
-- 전체 레이아웃 정돈감 — 요소들이 시각적으로 균형 잡혀 있는가, 덩어리감이 있는가
+FOCUS ONLY ON:
+- 이미지·비주얼 합성 품질 — 그림자 방향·광원·누끼 처리 일관성
+- 색상 조합 — 색상 충돌, 촌스러운 조합
+- 비주얼 요소 완성도 — 퀄리티 균일성
+- 전체 레이아웃 정돈감 — 시각적 균형, 덩어리감
 
-DO NOT comment on: alignment, spacing measurements, TV environment, brand strategy, information quantity, QR codes, buttons.
-If nothing is wrong, say 양호 — but still fill in the "reason" field explaining why it looks good. Do not manufacture problems.
+DO NOT comment on: alignment, spacing, TV environment, brand strategy, QR codes, buttons.
+If nothing is wrong, say 양호 but fill in "reason". Do not manufacture problems.
 
-For markers: 10x10 grid (col 1-10 left→right, row 1-10 top→bottom). IMPORTANT: For each marker, first identify the specific element you flagged as a problem, then look at where that element actually appears in the image, and place the marker at that exact grid position. Do not guess — look at the element you just described.
+Markers use 10x10 grid. Place marker at exact position of flagged element.
 
 Return ONLY valid JSON:
-{
-  "sections_pass2": [
-    {"id": "finish", "title": "시각적 완성도 & 정렬", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
-  ],
-  "markers_pass2": [
-    {"id": 1, "col": 2, "row": 3, "severity": "warning", "label": "레이블", "comment": "구체적 문제 2문장"}
-  ]
-}
+{"sections_pass2":[{"id":"finish","title":"시각적 완성도 & 정렬","verdict":"양호","cause":null,"problem":"","reason":"","suggestion":"","markerIds":[]}],"markers_pass2":[{"id":1,"col":2,"row":3,"severity":"warning","label":"레이블","comment":"구체적 문제 2문장"}]}
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 severity values: critical, warning, info
 All text in Korean.`;
 
-    const call1 = fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model, max_tokens: 2000, system: systemPrompt,
-        messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt1 }] }]
-      })
-    });
-
-    const call2 = fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model, max_tokens: 2000, system: systemPrompt,
-        messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt2 }] }]
-      })
-    });
-
-    let call3 = null;
-    const zoneCoords = specCheck?.expected?.zoneCoords;
-
-} else if (overlayBase64 && overlayType === 'safearea') {
-      // safearea 타입: 기존 방식 유지
-      const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 합성한 것입니다.
-
-안전영역 바깥(가장자리 띠) 안에 핵심 콘텐츠(메인 텍스트, 핵심 비주얼)가 걸쳐 있는지 확인하세요.
-- 배경 이미지, 그라데이션, 장식 요소, 네비게이션 화살표가 걸치는 건 무시하세요.
-- 핵심 텍스트나 주요 비주얼이 안전영역을 벗어난 경우만 지적하세요.
-
-Return ONLY valid JSON:
-{
-  "sections_pass3": [
-    {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
-  ]
-}
-verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
-All text in Korean.`;
-
-      call3 = fetch('https://api.anthropic.com/v1/messages', {
+    // call1, call2 병렬 실행
+    const [res1, res2] = await Promise.all([
+      fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model, max_tokens: 1000, system: systemPrompt,
-          messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
-            { type: 'text', text: safeareaPrompt }
-          ]}]
-        })
-      });
-    }
-
-
-
-        const promises = call3 ? [call1, call2, call3] : [call1, call2];
-    const responses = await Promise.all(promises);
-    const [res1, res2, res3] = responses;
-    const [data1, data2, data3] = await Promise.all(responses.map(r => r.json()));
+        body: JSON.stringify({ model, max_tokens: 2000, system: systemPrompt,
+          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt1 }] }] })
+      }),
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model, max_tokens: 2000, system: systemPrompt,
+          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt2 }] }] })
+      })
+    ]);
+    const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
     if (!res1.ok) return res.status(res1.status).json({ error: data1?.error?.message || 'API 오류 (1차)' });
     if (!res2.ok) return res.status(res2.status).json({ error: data2?.error?.message || 'API 오류 (2차)' });
-    if (res3 && !res3.ok) return res.status(res3.status).json({ error: data3?.error?.message || 'API 오류 (3차)' });
 
     const parseJSON = (data) => {
       const raw = (data?.content || []).map(c => c.type === 'text' ? (c.text || '') : '').join('').trim();
@@ -196,13 +132,66 @@ All text in Korean.`;
       return null;
     };
 
+    const p1 = parseJSON(data1);
+    const p2 = parseJSON(data2);
 
-    // ===== zone 타입: 좌표 비교 + YES/NO 병렬 처리 =====
-    if (overlayBase64 && overlayType === 'zone' && zoneCoords) {
+    const tvSection = (p1?.sections_pass1 || []).filter(s => s.id === 'tv');
+    const mainSections = (p1?.sections_pass1 || []).filter(s => s.id !== 'tv');
+    const allSections = [...mainSections, ...(p2?.sections_pass2 || []), ...tvSection];
+
+    const normalizeMarkers = (markers) => (markers || []).map((m, i) => ({
+      ...m, id: parseInt(String(m.id).replace(/\D/g, '')) || (i + 1)
+    }));
+    const markers1 = normalizeMarkers(p1?.markers_pass1);
+    const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length }));
+    const allMarkers = [...markers1, ...markers2];
+
+    (p2?.sections_pass2 || []).forEach(s => {
+      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length);
+    });
+
+    // ===== safearea 타입: AI 판단 =====
+    if (overlayBase64 && overlayType === 'safearea') {
+      const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 합성한 것입니다.
+안전영역 바깥(가장자리 띠) 안에 핵심 콘텐츠(메인 텍스트, 핵심 비주얼)가 걸쳐 있는지 확인하세요.
+- 배경, 그라데이션, 장식 요소, 네비게이션 화살표가 걸치는 건 무시하세요.
+- 핵심 텍스트나 주요 비주얼이 안전영역을 벗어난 경우만 지적하세요.
+Return ONLY valid JSON:
+{"sections_pass3":[{"id":"safearea","title":"안전영역 준수","verdict":"양호","cause":null,"problem":"","reason":"","suggestion":"","markerIds":[]}]}
+verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호. All text in Korean.`;
+
+      const rSafe = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model, max_tokens: 1000, system: systemPrompt,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
+            { type: 'text', text: safeareaPrompt }
+          ]}] })
+      });
+      const dSafe = await rSafe.json();
+      const p3 = parseJSON(dSafe);
+      if (p3?.sections_pass3?.length) {
+        const safeVerdict = p3.sections_pass3[0]?.verdict;
+        const isViolation = safeVerdict && safeVerdict !== '양호';
+        if (isViolation) p3.sections_pass3[0].verdict = '치명 리스크';
+        const safeMarkerId = allMarkers.length + 1;
+        allMarkers.push({ id: safeMarkerId, col: 1, row: 1,
+          severity: isViolation ? 'critical' : 'info', label: '안전영역',
+          comment: p3.sections_pass3[0]?.problem || '안전영역을 확인하세요' });
+        p3.sections_pass3.forEach(s => { s.markerIds = [safeMarkerId]; });
+        allSections.push(...p3.sections_pass3);
+      }
+    }
+
+    // ===== zone 타입: 좌표 비교 + YES/NO 시각 확인 병렬 =====
+    if (overlayBase64 && overlayType === 'zone') {
+      const zoneCoords = specCheck?.expected?.zoneCoords;
+
       const coordPrompt = `You are analyzing a TV banner image (1920x900px).
 Identify pixel coordinates (x, y, w, h) of these 4 elements. x=0 is left, y=0 is top.
 IGNORE: Top GNB bar, top-right icons (NETFLIX, Disney+, TVING, YouTube, APPs etc).
-Find ONLY: 1.subtitle(small text above title) 2.title(main large text) 3.button(CTA button) 4.mainImage(right side key visual)
+Find ONLY: 1.subtitle(small text above title) 2.title(main large text) 3.button(CTA button e.g.바로보기) 4.mainImage(right side key visual)
 If NOT present set all to -1.
 Return ONLY valid JSON: {"subtitle":{"x":0,"y":0,"w":0,"h":0},"title":{"x":0,"y":0,"w":0,"h":0},"button":{"x":0,"y":0,"w":0,"h":0},"mainImage":{"x":0,"y":0,"w":0,"h":0}}`;
 
@@ -234,34 +223,31 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       const yesnoResult = parseJSON(dZb);
 
       const isInZone = (el, zone) => {
-        if (!el || el.x < 0) return null;
+        if (!el || !zone || el.x < 0) return null;
         const m = 0.2;
         const cx = el.x + el.w/2, cy = el.y + el.h/2;
         return cx >= zone.x - zone.w*m && cx <= zone.x + zone.w*(1+m)
             && cy >= zone.y - zone.h*m && cy <= zone.y + zone.h*(1+m);
       };
+
       const labelMap = { subtitle:'서브 타이틀', title:'메인 타이틀', button:'버튼', mainImage:'메인 이미지' };
-      const zChecks = [
-        { key:'subtitle', zone:zoneCoords.subtitleZone },
-        { key:'title',    zone:zoneCoords.titleZone },
-        { key:'button',   zone:zoneCoords.buttonZone },
-        { key:'mainImage',zone:zoneCoords.mainImageZone },
-      ];
+      const zChecks = ['subtitle', 'title', 'button', 'mainImage'];
 
       const coordBadSet = new Set(), yesnoBadSet = new Set();
-      for (const c of zChecks) {
-        const el = coordResult?.[c.key];
-        if (!el || el.x < 0) coordBadSet.add(c.key);
-        else if (isInZone(el, c.zone) === false) coordBadSet.add(c.key);
-        const v = (yesnoResult?.[c.key] || '').toUpperCase();
-        if (v === 'NO' || v === 'PARTIAL') yesnoBadSet.add(c.key);
+      for (const key of zChecks) {
+        const zone = zoneCoords?.[key === 'subtitle' ? 'subtitleZone' : key === 'title' ? 'titleZone' : key === 'button' ? 'buttonZone' : 'mainImageZone'];
+        const el = coordResult?.[key];
+        if (!el || el.x < 0) coordBadSet.add(key);
+        else if (zone && isInZone(el, zone) === false) coordBadSet.add(key);
+        const v = (yesnoResult?.[key] || '').toUpperCase();
+        if (v === 'NO' || v === 'PARTIAL') yesnoBadSet.add(key);
       }
 
       const critical = [], caution = [];
-      for (const c of zChecks) {
-        const coordBad = coordBadSet.has(c.key), yesnoBad = yesnoBadSet.has(c.key);
-        if (coordBad && yesnoBad) critical.push(labelMap[c.key]);
-        else if (coordBad || yesnoBad) caution.push(labelMap[c.key]);
+      for (const key of zChecks) {
+        const coordBad = coordBadSet.has(key), yesnoBad = yesnoBadSet.has(key);
+        if (coordBad && yesnoBad) critical.push(labelMap[key]);
+        else if (coordBad || yesnoBad) caution.push(labelMap[key]);
       }
 
       const hasAnyIssue = critical.length > 0 || caution.length > 0;
@@ -271,6 +257,7 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
 
       let verdictZone = '양호', markerSeverity = 'info';
       let problemText = '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.', suggestionText = '';
+
       if (critical.length > 0) {
         verdictZone = '치명 리스크'; markerSeverity = 'critical';
         problemText = `${critical.join(', ')}이(가) 지정된 배치 영역을 벗어났습니다.`;
@@ -287,133 +274,19 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       }
 
       allSections.push({
-        id:'safearea', title:'영역 배치 준수', verdict:verdictZone,
+        id: 'safearea', title: '영역 배치 준수', verdict: verdictZone,
         cause: hasAnyIssue ? '콘텐츠 영역 이탈' : null,
         problem: hasAnyIssue ? problemText : '',
         reason: hasAnyIssue ? '좌표 비교 및 시각 확인 두 방식으로 검증한 결과입니다.' : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.',
         suggestion: suggestionText, markerIds: hasAnyIssue ? [safeMarkerId] : []
       });
-      if (hasAnyIssue) allMarkers.push({ id:safeMarkerId, col:2, row:5, severity:markerSeverity, label:'영역 배치', comment:problemText });
-      console.log('[zone] critical:', critical, 'caution:', caution);
+      if (hasAnyIssue) allMarkers.push({ id: safeMarkerId, col: 2, row: 5, severity: markerSeverity, label: '영역 배치', comment: problemText });
+      console.log('[zone] critical:', critical, 'caution:', caution, '| coord:', [...coordBadSet], '| yesno:', [...yesnoBadSet]);
     }
-
-    const p1 = parseJSON(data1);
-    const p2 = parseJSON(data2);
-    const p3 = data3 ? parseJSON(data3) : null;
-
-    const tvSection = (p1?.sections_pass1 || []).filter(s => s.id === 'tv');
-    const mainSections = (p1?.sections_pass1 || []).filter(s => s.id !== 'tv');
-    const allSections = [
-      ...mainSections,
-      ...(p2?.sections_pass2 || []),
-      ...tvSection,
-    ];
-
-    const normalizeMarkers = (markers) => (markers || []).map((m, i) => ({
-      ...m,
-      id: parseInt(String(m.id).replace(/\D/g, '')) || (i + 1)
-    }));
-
-    const markers1 = normalizeMarkers(p1?.markers_pass1);
-    const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length }));
-    const allMarkers = [...markers1, ...markers2];
-
-    // ===== zone 타입: 코드에서 좌표 비교 판단 =====
-    if (overlayType === 'zone' && zoneCoords && p3) {
-      const elements = p3;
-      const IW = specCheck?.actual?.width || 1920;
-      const IH = specCheck?.actual?.height || 900;
-
-      const isInZone = (el, zone) => {
-        if (!el || el.x < 0) return null; // 요소 없음
-        // 요소 중심점이 zone 안에 있는지 (여유 20% 허용)
-        const margin = 0.2;
-        const elCx = el.x + el.w / 2;
-        const elCy = el.y + el.h / 2;
-        const zx1 = zone.x - zone.w * margin;
-        const zx2 = zone.x + zone.w * (1 + margin);
-        const zy1 = zone.y - zone.h * margin;
-        const zy2 = zone.y + zone.h * (1 + margin);
-        return elCx >= zx1 && elCx <= zx2 && elCy >= zy1 && elCy <= zy2;
-      };
-
-      const checks = [
-        { key: 'subtitle', zone: zoneCoords.subtitleZone, label: '서브 타이틀' },
-        { key: 'title',    zone: zoneCoords.titleZone,    label: '메인 타이틀' },
-        { key: 'mainImage',zone: zoneCoords.mainImageZone,label: '메인 이미지' },
-      ];
-
-      const violations = [];
-      const missing = [];
-      for (const c of checks) {
-        const el = elements[c.key];
-        if (!el || el.x < 0) {
-          if (c.key === 'subtitle' || c.key === 'title') missing.push(c.label);
-          // 버튼은 개발에서 별도 삽입되므로 missing이 아닌 별도 처리
-          if (c.key === 'button') missing.push('버튼(개발 삽입 예정 — 디자인 가이드 확인 권장)');
-          continue;
-        }
-        const ok = isInZone(el, c.zone);
-        if (ok === false) violations.push(c.label);
-      }
-
-      const hasViolation = violations.length > 0 || missing.length > 0;
-      const safeMarkerId = allMarkers.length + 1;
-      const problemText = missing.length > 0 && violations.length === 0
-        ? `${missing.join(', ')}이(가) 지정된 영역 안에서 찾을 수 없습니다. 콘텐츠가 배치되지 않았거나 영역을 크게 벗어났습니다.`
-        : hasViolation
-        ? `${[...missing, ...violations].join(', ')}이(가) 지정된 배치 영역을 벗어났습니다.`
-        : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.';
-      const suggestionText = hasViolation
-        ? `${[...missing, ...violations].join(', ')}을(를) 각각의 지정 영역 안에 배치해주세요.`
-        : '';
-
-      const onlyButtonMissing = missing.length === 1 && missing[0].startsWith('버튼') && violations.length === 0;
-      const zoneSection = {
-        id: 'safearea',
-        title: '영역 배치 준수',
-        verdict: !hasViolation ? '양호' : onlyButtonMissing ? '검토 필요' : '치명 리스크',
-        cause: hasViolation ? '콘텐츠 영역 이탈' : null,
-        problem: hasViolation ? problemText : '',
-        reason: hasViolation ? '배치 가이드 기준 좌표와 비교한 결과입니다.' : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.',
-        suggestion: suggestionText,
-        markerIds: hasViolation ? [safeMarkerId] : []
-      };
-
-      allSections.push(zoneSection);
-
-      if (hasViolation) {
-        allMarkers.push({
-          id: safeMarkerId, col: 2, row: 5,
-          severity: onlyButtonMissing ? 'info' : 'critical', label: '영역 배치',
-          comment: problemText
-        });
-      }
-
-    } else if (p3?.sections_pass3?.length) {
-      // safearea 타입
-      const safeVerdict = p3.sections_pass3[0]?.verdict;
-      const isViolation = safeVerdict && safeVerdict !== '양호';
-      if (isViolation) p3.sections_pass3[0].verdict = '치명 리스크';
-      const safeSeverity = isViolation ? 'critical' : 'info';
-      const safeMarkerId = allMarkers.length + 1;
-      allMarkers.push({
-        id: safeMarkerId, col: 1, row: 1,
-        severity: safeSeverity, label: '안전영역',
-        comment: p3.sections_pass3[0]?.problem || '안전영역을 확인하세요'
-      });
-      p3.sections_pass3.forEach(s => { s.markerIds = [safeMarkerId]; });
-      allSections.push(...p3.sections_pass3);
-    }
-
-    (p2?.sections_pass2 || []).forEach(s => {
-      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length);
-    });
 
     const verdictPriority = { '치명 리스크': 4, '수정 권장': 3, '검토 필요': 2, '양호': 1 };
-    const worstVerdict = allSections.reduce((worst, s) => {
-      return (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst;
-    }, '양호');
+    const worstVerdict = allSections.reduce((worst, s) =>
+      (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst, '양호');
 
     const priorities = allSections
       .filter(s => s.verdict !== '양호' && s.problem && s.id !== 'safearea')
@@ -427,9 +300,8 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       : '전체적으로 양호한 시안입니다.';
 
     const parsed = { verdict: worstVerdict, markers: allMarkers, sections: allSections, priorities, finalComment };
-    const combinedText = JSON.stringify(parsed);
-    console.log('[review] sections:', allSections.length, '| markers:', allMarkers.length, '| zone:', overlayType);
-    return res.status(200).json({ model_used: model, text: combinedText, parsed });
+    console.log('[review] sections:', allSections.length, '| markers:', allMarkers.length);
+    return res.status(200).json({ model_used: model, text: JSON.stringify(parsed), parsed });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
