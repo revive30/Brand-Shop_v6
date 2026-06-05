@@ -133,31 +133,51 @@ All text in Korean.`;
       })
     });
 
+    // ===== 3번 call: zone 타입은 코드 좌표 비교, safearea 타입은 AI 판단 =====
     let call3 = null;
-    if (overlayBase64) {
-      const isZone = overlayType === 'zone';
+    const zoneCoords = specCheck?.expected?.zoneCoords;
 
-      const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 빨간색으로 합성한 것입니다.
+    if (overlayBase64 && overlayType === 'zone' && zoneCoords) {
+      // zone 타입: AI한테 각 요소 위치(픽셀 좌표)만 물어보고 코드에서 판단
+      const zonePrompt = `You are analyzing a TV banner image (1920x900px).
 
-【이미지 해석】
-- 이미지 가장자리를 둘러싼 빨간색 띠 = 안전영역 바깥 (위험 구역)
-- 빨간 띠 안쪽 = 안전영역 (안전 구역)
-- 빨간 띠의 두께는 좌우 약 80px, 상하 약 60px 입니다.
+Identify the pixel coordinates of these 4 content elements. For each element, give the bounding box (x, y, width, height) where x=0 is left edge, y=0 is top edge.
 
-【판단 방법 — 반드시 순서대로】
-1. 먼저 이미지에서 메인 타이틀(가장 큰 글자)을 찾으세요.
-2. 그 타이틀의 가장 왼쪽 글자가 빨간 띠에 닿거나 겹쳐 있는지 보세요.
-3. 본문 텍스트, 불릿 항목들의 왼쪽 끝도 빨간 띠에 닿는지 보세요.
-4. QR코드, 로고 등 핵심 요소도 빨간 띠에 닿는지 보세요.
+IGNORE these fixed UI elements (they are system UI, not banner content):
+- Top GNB bar: GENIE TV logo, search/menu/VOD/subscription navigation menus
+- Top-right buttons: Kidzland, NETFLIX, Disney+, TVING, YouTube, APPs, settings, notification icons
 
-【중요】
-- 텍스트나 핵심 요소가 빨간 띠에 조금이라도 닿거나 겹치면 → "수정 권장" 또는 "치명 리스크"
-- 핵심 요소가 모두 빨간 띠 안쪽(중앙 검은 영역)에 있으면 → "양호"
-- 배경 이미지, 그라데이션, 좌우 화살표(< >), 장식 요소가 빨간 띠에 걸치는 건 무시하세요.
+Find ONLY these banner content elements:
+1. subtitle: The smaller text above the main title (sub-headline)
+2. title: The main large title text
+3. button: The CTA button (바로보기 or similar)
+4. mainImage: The key visual image on the right side
 
-【주의】 타이틀이나 텍스트가 화면 왼쪽 끝에 바짝 붙어 있으면 거의 확실히 빨간 띠에 닿아 있는 것입니다. 꼼꼼히 보세요.
+If an element is NOT present in the image, set all values to -1.
 
-problem 필드에는 어떤 요소가 어느 쪽 빨간 띠에 닿았는지 구체적으로 적으세요.
+Return ONLY valid JSON:
+{
+  "subtitle": {"x": 0, "y": 0, "w": 0, "h": 0},
+  "title": {"x": 0, "y": 0, "w": 0, "h": 0},
+  "button": {"x": 0, "y": 0, "w": 0, "h": 0},
+  "mainImage": {"x": 0, "y": 0, "w": 0, "h": 0}
+}`;
+
+      call3 = fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model, max_tokens: 500, system: systemPrompt,
+          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: zonePrompt }] }]
+        })
+      });
+    } else if (overlayBase64 && overlayType === 'safearea') {
+      // safearea 타입: 기존 방식 유지
+      const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 합성한 것입니다.
+
+안전영역 바깥(가장자리 띠) 안에 핵심 콘텐츠(메인 텍스트, 핵심 비주얼)가 걸쳐 있는지 확인하세요.
+- 배경 이미지, 그라데이션, 장식 요소, 네비게이션 화살표가 걸치는 건 무시하세요.
+- 핵심 텍스트나 주요 비주얼이 안전영역을 벗어난 경우만 지적하세요.
 
 Return ONLY valid JSON:
 {
@@ -168,63 +188,14 @@ Return ONLY valid JSON:
 verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
 All text in Korean.`;
 
-      const zonePrompt = `이 이미지는 ICP 빅배너 시안 위에 콘텐츠 배치 영역 가이드를 파란색으로 합성한 것입니다.
-
-【이미지 해석】
-파란색 박스들은 각 콘텐츠가 들어가야 하는 지정 영역입니다:
-- 좌측 상단의 가로로 긴 파란 박스 = "서브 타이틀" 영역
-- 그 아래 큰 파란 박스 = "메인 타이틀" 영역
-- 그 아래 작은 파란 박스 = "버튼" 영역
-- 우측의 큰 파란 박스 = "메인 이미지" 영역
-
-【판단 방법】
-각 콘텐츠 요소가 지정된 파란 영역 "안에" 제대로 배치되어 있는지 확인하세요.
-1. 서브 타이틀 텍스트가 좌측 상단 파란 박스 안에 들어가 있는가
-2. 메인 타이틀 텍스트가 메인 타이틀 파란 박스 안에 들어가 있는가
-3. 버튼이 버튼 영역 파란 박스 안에 있는가
-4. 키 비주얼(메인 이미지)이 우측 메인 이미지 파란 박스 안에 배치되어 있는가
-
-【중요 — 검수 제외 항목】
-다음은 시스템에서 고정으로 들어가는 UI 요소로 검수 대상이 아닙니다. 무시하세요:
-- 상단 GNB 영역 (GENIE TV 로고, 검색/마이메뉴/영화.TV.VOD/월정액 등 메뉴)
-- 우측 상단 버튼들 (키즈랜드, NETFLIX, Disney+, TVING, YouTube, APPs, 설정, 알림 아이콘)
-
-【판단 대상】
-GNB와 고정 UI를 제외한 실제 배너 콘텐츠만 판단하세요:
-- 좌측의 서브 타이틀 텍스트
-- 좌측의 메인 타이틀 텍스트
-- 좌측의 버튼(바로보기 등)
-- 우측의 메인 비주얼 이미지
-
-【중요 — BOM 상세와 반대 개념】
-- 이것은 "침범하면 안 되는 안전영역"이 아닙니다.
-- 각 콘텐츠가 자기 지정 영역(파란 박스) "안에" 들어가야 하는 배치 가이드입니다.
-- 콘텐츠가 파란 영역을 벗어나 있거나, 엉뚱한 위치에 있으면 → "수정 권장" 또는 "치명 리스크"
-- 각 콘텐츠가 지정 영역 안에 잘 배치되어 있으면 → "양호"
-
-problem 필드에는 어떤 콘텐츠가 어느 지정 영역을 벗어났는지 구체적으로 적으세요.
-reason 필드에는 왜 그렇게 판단했는지 적으세요.
-
-Return ONLY valid JSON:
-{
-  "sections_pass3": [
-    {"id": "safearea", "title": "영역 배치 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
-  ]
-}
-verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
-All text in Korean.`;
-
-      const prompt3 = isZone ? zonePrompt : safeareaPrompt;
-
       call3 = fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
           model, max_tokens: 1000, system: systemPrompt,
           messages: [{ role: 'user', content: [
-            // JPEG로 변경
             { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
-            { type: 'text', text: prompt3 }
+            { type: 'text', text: safeareaPrompt }
           ]}]
         })
       });
@@ -258,7 +229,6 @@ All text in Korean.`;
       ...mainSections,
       ...(p2?.sections_pass2 || []),
       ...tvSection,
-      ...(p3?.sections_pass3 || [])
     ];
 
     const normalizeMarkers = (markers) => (markers || []).map((m, i) => ({
@@ -270,19 +240,86 @@ All text in Korean.`;
     const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length }));
     const allMarkers = [...markers1, ...markers2];
 
-    if (p3?.sections_pass3?.length) {
+    // ===== zone 타입: 코드에서 좌표 비교 판단 =====
+    if (overlayType === 'zone' && zoneCoords && p3) {
+      const elements = p3;
+      const IW = specCheck?.actual?.width || 1920;
+      const IH = specCheck?.actual?.height || 900;
+
+      const isInZone = (el, zone) => {
+        if (!el || el.x < 0) return null; // 요소 없음
+        // 요소 중심점이 zone 안에 있는지 (여유 20% 허용)
+        const margin = 0.2;
+        const elCx = el.x + el.w / 2;
+        const elCy = el.y + el.h / 2;
+        const zx1 = zone.x - zone.w * margin;
+        const zx2 = zone.x + zone.w * (1 + margin);
+        const zy1 = zone.y - zone.h * margin;
+        const zy2 = zone.y + zone.h * (1 + margin);
+        return elCx >= zx1 && elCx <= zx2 && elCy >= zy1 && elCy <= zy2;
+      };
+
+      const checks = [
+        { key: 'subtitle', zone: zoneCoords.subtitleZone, label: '서브 타이틀' },
+        { key: 'title',    zone: zoneCoords.titleZone,    label: '메인 타이틀' },
+        { key: 'button',   zone: zoneCoords.buttonZone,   label: '버튼' },
+        { key: 'mainImage',zone: zoneCoords.mainImageZone,label: '메인 이미지' },
+      ];
+
+      const violations = [];
+      for (const c of checks) {
+        const el = elements[c.key];
+        if (!el || el.x < 0) continue; // 없는 요소는 스킵
+        const ok = isInZone(el, c.zone);
+        if (ok === false) {
+          violations.push(c.label);
+        }
+      }
+
+      const hasViolation = violations.length > 0;
+      const safeMarkerId = allMarkers.length + 1;
+      const problemText = hasViolation
+        ? `${violations.join(', ')}이(가) 지정된 배치 영역을 벗어났습니다.`
+        : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.';
+      const suggestionText = hasViolation
+        ? `${violations.join(', ')}을(를) 각각의 지정 영역 안으로 이동해주세요.`
+        : '';
+
+      const zoneSection = {
+        id: 'safearea',
+        title: '영역 배치 준수',
+        verdict: hasViolation ? '치명 리스크' : '양호',
+        cause: hasViolation ? '콘텐츠 영역 이탈' : null,
+        problem: hasViolation ? problemText : '',
+        reason: hasViolation ? '배치 가이드 기준 좌표와 비교한 결과입니다.' : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.',
+        suggestion: suggestionText,
+        markerIds: hasViolation ? [safeMarkerId] : []
+      };
+
+      allSections.push(zoneSection);
+
+      if (hasViolation) {
+        allMarkers.push({
+          id: safeMarkerId, col: 2, row: 5,
+          severity: 'critical', label: '영역 배치',
+          comment: problemText
+        });
+      }
+
+    } else if (p3?.sections_pass3?.length) {
+      // safearea 타입
       const safeVerdict = p3.sections_pass3[0]?.verdict;
       const isViolation = safeVerdict && safeVerdict !== '양호';
-      if (isViolation) {
-        p3.sections_pass3[0].verdict = '치명 리스크';
-      }
+      if (isViolation) p3.sections_pass3[0].verdict = '치명 리스크';
       const safeSeverity = isViolation ? 'critical' : 'info';
-      const safeMarkerId = markers1.length + markers2.length + 1;
-      const safeLabel = overlayType === 'zone' ? '영역 배치' : '안전영역';
-      const safeCol = overlayType === 'zone' ? 2 : 1;
-      const safeRow = overlayType === 'zone' ? 5 : 1;
-      allMarkers.push({ id: safeMarkerId, col: safeCol, row: safeRow, severity: safeSeverity, label: safeLabel, comment: p3.sections_pass3[0]?.problem || (overlayType==='zone'?'영역 배치를 확인하세요':'안전영역을 확인하세요') });
+      const safeMarkerId = allMarkers.length + 1;
+      allMarkers.push({
+        id: safeMarkerId, col: 1, row: 1,
+        severity: safeSeverity, label: '안전영역',
+        comment: p3.sections_pass3[0]?.problem || '안전영역을 확인하세요'
+      });
       p3.sections_pass3.forEach(s => { s.markerIds = [safeMarkerId]; });
+      allSections.push(...p3.sections_pass3);
     }
 
     (p2?.sections_pass2 || []).forEach(s => {
@@ -305,16 +342,9 @@ All text in Korean.`;
       ? problemSections.map(s => s.suggestion).join(' ')
       : '전체적으로 양호한 시안입니다.';
 
-    const parsed = {
-      verdict: worstVerdict,
-      markers: allMarkers,
-      sections: allSections,
-      priorities,
-      finalComment
-    };
-
+    const parsed = { verdict: worstVerdict, markers: allMarkers, sections: allSections, priorities, finalComment };
     const combinedText = JSON.stringify(parsed);
-    console.log('[review] pass1 stop:', data1.stop_reason, '| pass2 stop:', data2.stop_reason, '| sections:', allSections.length, '| markers:', allMarkers.length);
+    console.log('[review] sections:', allSections.length, '| markers:', allMarkers.length, '| zone:', overlayType);
     return res.status(200).json({ model_used: model, text: combinedText, parsed });
 
   } catch (err) {
