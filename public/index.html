@@ -587,11 +587,35 @@ async function exportPDF(){
 
     container.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:40px;font-family:Pretendard,-apple-system,sans-serif;font-size:13px;color:#1a1a24;line-height:1.6;';
 
+    // 시안 이미지에 마커 그리기
+    let markerImgSrc = '';
     const canvasImg=$('canvasImg');
-    let imgHtml='';
-    if(canvasImg.src&&canvasImg.naturalWidth>0){
-      imgHtml=`<img src="${canvasImg.src}" style="width:100%;border-radius:8px;margin-bottom:16px;display:block;" crossorigin="anonymous"/>`;
+    if(canvasImg.src && canvasImg.naturalWidth>0 && parsed.markers?.length){
+      const mc=document.createElement('canvas');
+      mc.width=canvasImg.naturalWidth; mc.height=canvasImg.naturalHeight;
+      const mctx=mc.getContext('2d');
+      const mi=new Image(); mi.crossOrigin='anonymous';
+      await new Promise(r=>{mi.onload=r;mi.src=canvasImg.src;});
+      mctx.drawImage(mi,0,0);
+      const COLS=10,ROWS=10;
+      parsed.markers.forEach(m=>{
+        const px=mc.width*((m.col-0.5)/COLS);
+        const py=mc.height*((m.row-0.5)/ROWS);
+        const r=Math.min(mc.width,mc.height)*0.022;
+        const color=m.severity==='critical'?'#ff4f4f':m.severity==='warning'?'#ffaa00':'#0064ff';
+        mctx.beginPath();mctx.arc(px,py,r,0,Math.PI*2);
+        mctx.fillStyle=color;mctx.fill();
+        mctx.strokeStyle='rgba(255,255,255,0.7)';mctx.lineWidth=r*0.15;mctx.stroke();
+        mctx.fillStyle='#fff';mctx.font=`bold ${r*1.1}px sans-serif`;
+        mctx.textAlign='center';mctx.textBaseline='middle';
+        mctx.fillText(String(m.id),px,py);
+      });
+      markerImgSrc=mc.toDataURL('image/jpeg',0.92);
+    } else if(canvasImg.src && canvasImg.naturalWidth>0){
+      markerImgSrc=canvasImg.src;
     }
+
+    const imgHtml=markerImgSrc?`<img src="${markerImgSrc}" style="width:100%;border-radius:8px;margin-bottom:16px;display:block;"/>`:'';
 
     const sectionsHtml=(parsed.sections||[]).map(s=>`
       <div style="margin-bottom:16px;border:1px solid #e8e8f0;border-radius:8px;overflow:hidden;">
@@ -610,11 +634,17 @@ async function exportPDF(){
     const prioritiesHtml=parsed.priorities?.length?`
       <div style="margin-bottom:20px;">
         <div style="font-size:15px;font-weight:700;margin-bottom:10px;">우선 수정 항목</div>
-        ${parsed.priorities.map((p,i)=>`
-          <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-            <span style="width:20px;height:20px;border-radius:50%;background:${verdictColor(p.verdict)};color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i+1}</span>
-            <span style="font-size:12px;color:#333;">${p.text}</span>
-          </div>`).join('')}
+        ${parsed.priorities.map((p,i)=>{
+          const sec=(parsed.sections||[]).find(s=>s.problem===p.text);
+          const secName=sec?.title||'';
+          return `<div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-start;">
+            <span style="flex-shrink:0;padding:2px 8px;border-radius:99px;background:${verdictBg(p.verdict)};border:1px solid ${verdictColor(p.verdict)}44;font-size:10px;font-weight:700;color:${verdictColor(p.verdict)};margin-top:2px;white-space:nowrap;">${p.verdict}</span>
+            <div>
+              ${secName?`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:2px;">${secName}</div>`:''}
+              <div style="font-size:12px;color:#333;">${p.text}</div>
+            </div>
+          </div>`;
+        }).join('')}
       </div>`:'';
 
     const commentHtml=parsed.finalComment&&parsed.finalComment!=='전체적으로 양호한 시안입니다.'?`
@@ -630,7 +660,7 @@ async function exportPDF(){
       </div>
       ${imgHtml}
       <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;background:${verdictBg(parsed.verdict)};border:1px solid ${verdictColor(parsed.verdict)}33;margin-bottom:20px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:${verdictColor(parsed.verdict)};"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:${verdictColor(parsed.verdict)};flex-shrink:0;"></span>
         <span style="font-weight:800;font-size:14px;color:${verdictColor(parsed.verdict)};">종합 판정: ${parsed.verdict}</span>
       </div>
       <div style="font-size:15px;font-weight:700;margin-bottom:12px;">검수 결과</div>
@@ -646,17 +676,8 @@ async function exportPDF(){
     document.body.removeChild(container);
 
     const imgData=canvas.toDataURL('image/png');
-    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-    const pdfW=pdf.internal.pageSize.getWidth();
-    const pdfH=pdf.internal.pageSize.getHeight();
-    const imgW=pdfW, imgH=(canvas.height*pdfW)/canvas.width;
-
-    let posY=0;
-    while(posY<imgH){
-      if(posY>0)pdf.addPage();
-      pdf.addImage(imgData,'PNG',0,-posY,imgW,imgH);
-      posY+=pdfH;
-    }
+    const pdf=new jsPDF({orientation:'portrait',unit:'px',format:[canvas.width/2, canvas.height/2]});
+    pdf.addImage(imgData,'PNG',0,0,canvas.width/2,canvas.height/2);
 
     const fileDateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
     const bannerName=($('bannerType').value||'검수결과').replace(/\s/g,'_');
