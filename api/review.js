@@ -306,8 +306,18 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       : '전체적으로 양호한 시안입니다.';
 
     const parsed = { verdict: worstVerdict, markers: allMarkers, sections: allSections, priorities, finalComment };
+    const debug = {
+      model: model,
+      banner_type: reviewType,
+      service: svc,
+      overlay_type: overlayType || null,
+      sections: allSections.map(s => ({ id: s.id, verdict: s.verdict, problem: s.problem || null, reason: s.reason || null })),
+      markers: allMarkers.map(m => ({ id: m.id, severity: m.severity, label: m.label, col: m.col, row: m.row, comment: m.comment })),
+      raw_pass1: p1,
+      raw_pass2: p2,
+    };
     console.log('[review] sections:', allSections.length, '| markers:', allMarkers.length);
-    return res.status(200).json({ model_used: model, text: JSON.stringify(parsed), parsed });
+    return res.status(200).json({ model_used: model, text: JSON.stringify(parsed), parsed, debug });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
