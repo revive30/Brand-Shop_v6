@@ -59,6 +59,11 @@ ${specNote}
 ${directorGuidelineText}
 ${designNoteText}
 
+CRITICAL — DO NOT REVIEW these system UI elements (they are fixed platform UI, not banner content):
+- Top GNB: GENIE TV logo, 검색/마이메뉴/영화.TV.VOD/월정액/무료/키즈랜드/혜택 menus
+- Top-right icons: 키즈랜드, NETFLIX, Disney+, TVING, YouTube, APPs, settings, notification bell
+Ignore them completely. Never mention them.
+
 FOCUS ON these 3 areas with detailed analysis:
 1. TV 시청 환경 적합성 — 3m 거리에서 한눈에 읽히는가, 텍스트 양이 적절한가, 레이아웃이 단순하고 명확한가
 2. 브랜드 톤 & 무드 — 브랜드/이벤트 컨셉에 맞는 분위기인가, 색감·무드·톤앤매너가 어울리는가, 이벤트 성격과 비주얼이 맞는가. 양호여도 구체적으로 어떤 점이 잘 됐는지 설명할 것.
@@ -90,6 +95,11 @@ Design info:
 - Banner type: ${reviewType || 'unknown'}
 ${memoText}
 ${directorGuidelineText}
+
+CRITICAL — DO NOT REVIEW these system UI elements (they are fixed platform UI, not banner content):
+- Top GNB: GENIE TV logo, 검색/마이메뉴/영화.TV.VOD/월정액/무료/키즈랜드/혜택 menus
+- Top-right icons: 키즈랜드, NETFLIX, Disney+, TVING, YouTube, APPs, settings, notification bell
+Ignore them completely. Never mention them.
 
 FOCUS ONLY ON visual finish and design quality — look at the IMAGES and VISUALS:
 - 이미지·비주얼 합성 품질 — 그림자 방향·광원·누끼 처리가 일관성 있는가. 어색하게 붙여넣은 느낌은 없는가
@@ -267,22 +277,26 @@ All text in Korean.`;
       ];
 
       const violations = [];
+      const missing = [];
       for (const c of checks) {
         const el = elements[c.key];
-        if (!el || el.x < 0) continue; // 없는 요소는 스킵
-        const ok = isInZone(el, c.zone);
-        if (ok === false) {
-          violations.push(c.label);
+        if (!el || el.x < 0) {
+          if (c.key !== 'mainImage') missing.push(c.label);
+          continue;
         }
+        const ok = isInZone(el, c.zone);
+        if (ok === false) violations.push(c.label);
       }
 
-      const hasViolation = violations.length > 0;
+      const hasViolation = violations.length > 0 || missing.length > 0;
       const safeMarkerId = allMarkers.length + 1;
-      const problemText = hasViolation
-        ? `${violations.join(', ')}이(가) 지정된 배치 영역을 벗어났습니다.`
+      const problemText = missing.length > 0 && violations.length === 0
+        ? `${missing.join(', ')}이(가) 지정된 영역 안에서 찾을 수 없습니다. 콘텐츠가 배치되지 않았거나 영역을 크게 벗어났습니다.`
+        : hasViolation
+        ? `${[...missing, ...violations].join(', ')}이(가) 지정된 배치 영역을 벗어났습니다.`
         : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.';
       const suggestionText = hasViolation
-        ? `${violations.join(', ')}을(를) 각각의 지정 영역 안으로 이동해주세요.`
+        ? `${[...missing, ...violations].join(', ')}을(를) 각각의 지정 영역 안에 배치해주세요.`
         : '';
 
       const zoneSection = {
