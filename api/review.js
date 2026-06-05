@@ -246,8 +246,13 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       const critical = [], caution = [];
       for (const key of zChecks) {
         const coordBad = coordBadSet.has(key), yesnoBad = yesnoBadSet.has(key);
-        if (coordBad && yesnoBad) critical.push(labelMap[key]);
-        else if (coordBad || yesnoBad) caution.push(labelMap[key]);
+        // 서브타이틀·메인타이틀은 하나라도 문제면 치명
+        if (key === 'subtitle' || key === 'title') {
+          if (coordBad || yesnoBad) critical.push(labelMap[key]);
+        } else {
+          if (coordBad && yesnoBad) critical.push(labelMap[key]);
+          else if (coordBad || yesnoBad) caution.push(labelMap[key]);
+        }
       }
 
       const hasAnyIssue = critical.length > 0 || caution.length > 0;
