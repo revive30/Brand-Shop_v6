@@ -143,12 +143,62 @@ All text in Korean.`;
       })
     });
 
-    // ===== 3번 call: zone 타입은 코드 좌표 비교, safearea 타입은 AI 판단 =====
     let call3 = null;
     const zoneCoords = specCheck?.expected?.zoneCoords;
 
+} else if (overlayBase64 && overlayType === 'safearea') {
+      // safearea 타입: 기존 방식 유지
+      const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 합성한 것입니다.
+
+안전영역 바깥(가장자리 띠) 안에 핵심 콘텐츠(메인 텍스트, 핵심 비주얼)가 걸쳐 있는지 확인하세요.
+- 배경 이미지, 그라데이션, 장식 요소, 네비게이션 화살표가 걸치는 건 무시하세요.
+- 핵심 텍스트나 주요 비주얼이 안전영역을 벗어난 경우만 지적하세요.
+
+Return ONLY valid JSON:
+{
+  "sections_pass3": [
+    {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
+  ]
+}
+verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
+All text in Korean.`;
+
+      call3 = fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model, max_tokens: 1000, system: systemPrompt,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
+            { type: 'text', text: safeareaPrompt }
+          ]}]
+        })
+      });
+    }
+
+
+
+        const promises = call3 ? [call1, call2, call3] : [call1, call2];
+    const responses = await Promise.all(promises);
+    const [res1, res2, res3] = responses;
+    const [data1, data2, data3] = await Promise.all(responses.map(r => r.json()));
+    if (!res1.ok) return res.status(res1.status).json({ error: data1?.error?.message || 'API 오류 (1차)' });
+    if (!res2.ok) return res.status(res2.status).json({ error: data2?.error?.message || 'API 오류 (2차)' });
+    if (res3 && !res3.ok) return res.status(res3.status).json({ error: data3?.error?.message || 'API 오류 (3차)' });
+
+    const parseJSON = (data) => {
+      const raw = (data?.content || []).map(c => c.type === 'text' ? (c.text || '') : '').join('').trim();
+      const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```\s*$/i,'').trim();
+      for (const t of [cleaned, raw]) {
+        try { const r = JSON.parse(t); if (r) return r; } catch(e) {}
+        try { const m = t.match(/\{[\s\S]*\}/); if (m) { const r = JSON.parse(m[0]); if (r) return r; } } catch(e) {}
+      }
+      return null;
+    };
+
+
+    // ===== zone 타입: 좌표 비교 + YES/NO 병렬 처리 =====
     if (overlayBase64 && overlayType === 'zone' && zoneCoords) {
-      // zone 타입: 좌표 비교 + YES/NO 시각 확인 병렬 실행
       const coordPrompt = `You are analyzing a TV banner image (1920x900px).
 Identify pixel coordinates (x, y, w, h) of these 4 elements. x=0 is left, y=0 is top.
 IGNORE: Top GNB bar, top-right icons (NETFLIX, Disney+, TVING, YouTube, APPs etc).
@@ -162,7 +212,7 @@ Return ONLY valid JSON: {"subtitle":{"x":0,"y":0,"w":0,"h":0},"title":{"x":0,"y"
 IGNORE: 상단 GNB(GENIE TV 로고, 메뉴, 우측 아이콘들)
 Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImage":"YES"}`;
 
-      const [r3a, r3b] = await Promise.all([
+      const [rZa, rZb] = await Promise.all([
         fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
@@ -179,9 +229,9 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
             ]}] })
         })
       ]);
-      const [d3a, d3b] = await Promise.all([r3a.json(), r3b.json()]);
-      const coordResult = parseJSON(d3a);
-      const yesnoResult = parseJSON(d3b);
+      const [dZa, dZb] = await Promise.all([rZa.json(), rZb.json()]);
+      const coordResult = parseJSON(dZa);
+      const yesnoResult = parseJSON(dZb);
 
       const isInZone = (el, zone) => {
         if (!el || el.x < 0) return null;
@@ -219,7 +269,8 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       const nonButtonCaution = caution.filter(l => l !== '버튼');
       const onlyButtonIssue = critical.length === 0 && caution.length > 0 && nonButtonCaution.length === 0;
 
-      let verdictZone = '양호', markerSeverity = 'info', problemText = '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.', suggestionText = '';
+      let verdictZone = '양호', markerSeverity = 'info';
+      let problemText = '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.', suggestionText = '';
       if (critical.length > 0) {
         verdictZone = '치명 리스크'; markerSeverity = 'critical';
         problemText = `${critical.join(', ')}이(가) 지정된 배치 영역을 벗어났습니다.`;
@@ -244,54 +295,7 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       });
       if (hasAnyIssue) allMarkers.push({ id:safeMarkerId, col:2, row:5, severity:markerSeverity, label:'영역 배치', comment:problemText });
       console.log('[zone] critical:', critical, 'caution:', caution);
-
-    } else if (overlayBase64 && overlayType === 'safearea') {
-      // safearea 타입: 기존 방식 유지
-      const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 합성한 것입니다.
-
-안전영역 바깥(가장자리 띠) 안에 핵심 콘텐츠(메인 텍스트, 핵심 비주얼)가 걸쳐 있는지 확인하세요.
-- 배경 이미지, 그라데이션, 장식 요소, 네비게이션 화살표가 걸치는 건 무시하세요.
-- 핵심 텍스트나 주요 비주얼이 안전영역을 벗어난 경우만 지적하세요.
-
-Return ONLY valid JSON:
-{
-  "sections_pass3": [
-    {"id": "safearea", "title": "안전영역 준수", "verdict": "양호", "cause": null, "problem": "", "reason": "", "suggestion": "", "markerIds": []}
-  ]
-}
-verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호
-All text in Korean.`;
-
-      call3 = fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model, max_tokens: 1000, system: systemPrompt,
-          messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
-            { type: 'text', text: safeareaPrompt }
-          ]}]
-        })
-      });
     }
-
-    const promises = call3 ? [call1, call2, call3] : [call1, call2];
-    const responses = await Promise.all(promises);
-    const [res1, res2, res3] = responses;
-    const [data1, data2, data3] = await Promise.all(responses.map(r => r.json()));
-    if (!res1.ok) return res.status(res1.status).json({ error: data1?.error?.message || 'API 오류 (1차)' });
-    if (!res2.ok) return res.status(res2.status).json({ error: data2?.error?.message || 'API 오류 (2차)' });
-    if (res3 && !res3.ok) return res.status(res3.status).json({ error: data3?.error?.message || 'API 오류 (3차)' });
-
-    const parseJSON = (data) => {
-      const raw = (data?.content || []).map(c => c.type === 'text' ? (c.text || '') : '').join('').trim();
-      const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```\s*$/i,'').trim();
-      for (const t of [cleaned, raw]) {
-        try { const r = JSON.parse(t); if (r) return r; } catch(e) {}
-        try { const m = t.match(/\{[\s\S]*\}/); if (m) { const r = JSON.parse(m[0]); if (r) return r; } } catch(e) {}
-      }
-      return null;
-    };
 
     const p1 = parseJSON(data1);
     const p2 = parseJSON(data2);
