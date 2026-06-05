@@ -439,7 +439,7 @@ function renderBottom(p){
       ${p.finalComment?`<div class="b-card"><div class="b-card-title">디렉터 코멘트</div><div class="final-text">${p.finalComment}</div></div>`:'<div></div>'}
     </div>
     <div class="action-row">
-      <button class="act-btn" onclick="copyRes()">결과 복사</button>
+      <button class="act-btn" onclick="copyRes()">Claude에게 복사</button>
       <button class="act-btn" onclick="exportPDF()" id="pdfBtn">PDF 내보내기</button>
       <button class="act-btn" onclick="resetView()">새 검수</button>
     </div>`;
@@ -515,6 +515,7 @@ async function startReview(){
     if(!res.ok){let msg=text;try{msg=JSON.parse(text)?.error||text}catch(e){}throw new Error(msg);}
     const data=JSON.parse(text);
     lastText=(data.text||'').replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```\s*$/i,'').trim();
+    lastDebug=data.debug||null;
     parsed=data.parsed;
     if(!parsed){
       for(const fn of[()=>JSON.parse(lastText),()=>{const m=lastText.match(/\{[\s\S]*\}/);return m?JSON.parse(m[0]):null}]){
@@ -534,168 +535,141 @@ async function startReview(){
     $("bottomPane").innerHTML=`<div style="padding:28px;color:var(--red);font-size:14px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">⚠️</span><span>오류: ${e.message}</span></div>`;
   }finally{$('runBtn').disabled=false;$('runBtn').textContent='✦ 검수 시작';}
 }
-function copyRes(){navigator.clipboard.writeText(lastText).then(()=>{const b=event.target;b.textContent='✓ 복사됨';setTimeout(()=>b.textContent='결과 복사',2000)})}
+let lastDebug = null;
+
+function copyRes(){
+  if(!lastDebug && !lastText) return;
+  const debugText = lastDebug
+    ? `## 검수 디버그 리포트\n\n` +
+      `**배너**: ${lastDebug.banner_type || '-'} / **서비스**: ${lastDebug.service || '-'} / **오버레이**: ${lastDebug.overlay_type || '없음'}\n\n` +
+      `### 섹션별 판정\n` +
+      (lastDebug.sections||[]).map(s=>`- **${s.id}** → ${s.verdict}${s.problem ? '\n  - 문제: '+s.problem : ''}`).join('\n') + '\n\n' +
+      `### 마커\n` +
+      (lastDebug.markers||[]).map(m=>`- [${m.id}] ${m.severity} / ${m.label} (col:${m.col} row:${m.row})\n  ${m.comment}`).join('\n') + '\n\n' +
+      `### AI 원본 응답 (pass1)\n\`\`\`json\n${JSON.stringify(lastDebug.raw_pass1, null, 2)}\n\`\`\`\n\n` +
+      `### AI 원본 응답 (pass2)\n\`\`\`json\n${JSON.stringify(lastDebug.raw_pass2, null, 2)}\n\`\`\``
+    : lastText;
+  navigator.clipboard.writeText(debugText).then(()=>{
+    const b=event.target;
+    b.textContent='✓ 복사됨';
+    setTimeout(()=>b.textContent='Claude에게 복사',2000);
+  });
+}
 
 async function exportPDF(){
   if(!parsed)return;
   const btn=$('pdfBtn');
   btn.textContent='생성 중...';btn.disabled=true;
   try{
-    // jsPDF 동적 로드
-    if(!window.jspdf){
-      await new Promise((res,rej)=>{
-        const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        s.onload=res;s.onerror=rej;document.head.appendChild(s);
-      });
-    }
+    // html2canvas + jsPDF 동적 로드
+    await Promise.all([
+      new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);}),
+      new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);})
+    ]);
     const {jsPDF}=window.jspdf;
-    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-    const W=210,M=18;
-    let y=M;
 
-    // 헬퍼
-    const addText=(text,x,size,color,bold,maxW)=>{
-      doc.setFontSize(size);
-      doc.setTextColor(...color);
-      doc.setFont('helvetica', bold?'bold':'normal');
-      const lines=doc.splitTextToSize(String(text||''),maxW||(W-M*2));
-      doc.text(lines,x,y);
-      y+=lines.length*(size*0.4)+1;
-      return lines.length;
-    };
-    const addLine=(color=[220,220,220])=>{
-      doc.setDrawColor(...color);
-      doc.line(M,y,W-M,y);
-      y+=4;
-    };
-    const checkPage=(need=20)=>{if(y+need>285){doc.addPage();y=M;}};
-
-    const verdictColor=(v)=>{
-      if(v?.includes('치명'))return[220,60,60];
-      if(v?.includes('수정'))return[220,140,0];
-      if(v?.includes('검토'))return[0,100,220];
-      return[0,160,100];
-    };
-
-    // 헤더
-    doc.setFillColor(15,15,18);
-    doc.rect(0,0,W,28,'F');
-    doc.setFontSize(16);doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');
-    doc.text('디자인 사전 검수 리포트',M,13);
-    doc.setFontSize(9);doc.setTextColor(148,148,164);doc.setFont('helvetica','normal');
+    // PDF용 임시 컨테이너 생성
+    const container=document.createElement('div');
     const now=new Date();
-    doc.text(`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}  ${$('bannerType').value||''}`,M,20);
-    y=36;
+    const dateStr=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+    const verdictColor=(v)=>{
+      if(v?.includes('치명'))return'#ff4f4f';
+      if(v?.includes('수정'))return'#ffaa00';
+      if(v?.includes('검토'))return'#0064ff';
+      return'#00c17a';
+    };
+    const verdictBg=(v)=>{
+      if(v?.includes('치명'))return'#fff0f0';
+      if(v?.includes('수정'))return'#fff8e6';
+      if(v?.includes('검토'))return'#f0f5ff';
+      return'#f0fff8';
+    };
 
-    // 시안 이미지
+    container.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:40px;font-family:Pretendard,-apple-system,sans-serif;font-size:13px;color:#1a1a24;line-height:1.6;';
+
     const canvasImg=$('canvasImg');
+    let imgHtml='';
     if(canvasImg.src&&canvasImg.naturalWidth>0){
-      const imgW=W-M*2, imgH=Math.round(imgW*(canvasImg.naturalHeight/canvasImg.naturalWidth));
-      const safeH=Math.min(imgH,70);
-      doc.addImage(canvasImg.src,'JPEG',M,y,imgW,safeH);
-      y+=safeH+6;
+      imgHtml=`<img src="${canvasImg.src}" style="width:100%;border-radius:8px;margin-bottom:16px;display:block;" crossorigin="anonymous"/>`;
     }
 
-    // 종합 판정
-    checkPage(16);
-    doc.setFillColor(...verdictColor(parsed.verdict).map(c=>Math.min(c+180,255)));
-    doc.roundedRect(M,y-4,W-M*2,12,2,2,'F');
-    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(...verdictColor(parsed.verdict));
-    doc.text(`종합 판정: ${parsed.verdict}`,M+4,y+4);
-    y+=14;
+    const sectionsHtml=(parsed.sections||[]).map(s=>`
+      <div style="margin-bottom:16px;border:1px solid #e8e8f0;border-radius:8px;overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f5f5f8;">
+          <span style="font-weight:700;font-size:13px;">${s.title}</span>
+          <span style="font-weight:700;font-size:12px;color:${verdictColor(s.verdict)};background:${verdictBg(s.verdict)};padding:3px 10px;border-radius:99px;">${s.verdict}</span>
+        </div>
+        ${s.verdict==='양호'&&s.reason?`<div style="padding:10px 14px;font-size:12px;color:#666;">${s.reason}</div>`:''}
+        ${s.problem?`<div style="padding:10px 14px;">
+          <div style="font-size:10px;font-weight:700;color:#999;margin-bottom:4px;">문제</div>
+          <div style="font-size:12px;color:#333;">${s.problem}</div>
+        </div>`:''}
+        ${s.suggestion?`<div style="margin:0 14px 12px;padding:10px 12px;background:#f0f5ff;border-left:3px solid #0064ff;border-radius:0 6px 6px 0;font-size:12px;color:#0064ff;">${s.suggestion}</div>`:''}
+      </div>`).join('');
 
-    // 섹션별 결과
-    checkPage(10);
-    doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(30,30,40);
-    doc.text('검수 결과',M,y);y+=6;
-    addLine([200,200,200]);
+    const prioritiesHtml=parsed.priorities?.length?`
+      <div style="margin-bottom:20px;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;">우선 수정 항목</div>
+        ${parsed.priorities.map((p,i)=>`
+          <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
+            <span style="width:20px;height:20px;border-radius:50%;background:${verdictColor(p.verdict)};color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i+1}</span>
+            <span style="font-size:12px;color:#333;">${p.text}</span>
+          </div>`).join('')}
+      </div>`:'';
 
-    for(const s of (parsed.sections||[])){
-      checkPage(24);
-      // 섹션 헤더
-      const vc=verdictColor(s.verdict);
-      doc.setFillColor(245,245,248);
-      doc.rect(M,y-3,W-M*2,8,'F');
-      doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(30,30,40);
-      doc.text(s.title,M+2,y+2);
-      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(...vc);
-      doc.text(s.verdict,W-M-2,y+2,{align:'right'});
-      y+=10;
+    const commentHtml=parsed.finalComment&&parsed.finalComment!=='전체적으로 양호한 시안입니다.'?`
+      <div style="margin-bottom:20px;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;">디렉터 코멘트</div>
+        <div style="font-size:12px;color:#555;line-height:1.7;">${parsed.finalComment}</div>
+      </div>`:'';
 
-      if(s.verdict==='양호'&&s.reason){
-        doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(100,100,120);
-        const lines=doc.splitTextToSize(s.reason,W-M*2-4);
-        checkPage(lines.length*4+4);
-        doc.text(lines,M+2,y);
-        y+=lines.length*4+4;
-      }
-      if(s.problem){
-        checkPage(14);
-        doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(120,120,140);
-        doc.text('문제',M+2,y);y+=4;
-        doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(50,50,60);
-        const pl=doc.splitTextToSize(s.problem,W-M*2-4);
-        checkPage(pl.length*4+2);
-        doc.text(pl,M+2,y);y+=pl.length*4+2;
-      }
-      if(s.suggestion){
-        checkPage(14);
-        doc.setFillColor(240,245,255);
-        const sl=doc.splitTextToSize(s.suggestion,W-M*2-8);
-        doc.rect(M,y-1,W-M*2,sl.length*4+4,'F');
-        doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(0,80,200);
-        doc.text(sl,M+4,y+2);
-        y+=sl.length*4+6;
-      }
-      y+=3;
+    container.innerHTML=`
+      <div style="background:#0f0f12;padding:20px 24px;border-radius:10px;margin-bottom:24px;">
+        <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;">디자인 사전 검수 리포트</div>
+        <div style="font-size:12px;color:#9494a4;">${dateStr} &nbsp;·&nbsp; ${$('bannerType').value||''}</div>
+      </div>
+      ${imgHtml}
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;background:${verdictBg(parsed.verdict)};border:1px solid ${verdictColor(parsed.verdict)}33;margin-bottom:20px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${verdictColor(parsed.verdict)};"></span>
+        <span style="font-weight:800;font-size:14px;color:${verdictColor(parsed.verdict)};">종합 판정: ${parsed.verdict}</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px;">검수 결과</div>
+      ${sectionsHtml}
+      ${prioritiesHtml}
+      ${commentHtml}
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa;text-align:center;">디자인 사전 검수 에이전트 v0.4</div>`;
+
+    document.body.appendChild(container);
+    await new Promise(r=>setTimeout(r,300));
+
+    const canvas=await html2canvas(container,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff'});
+    document.body.removeChild(container);
+
+    const imgData=canvas.toDataURL('image/png');
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const pdfW=pdf.internal.pageSize.getWidth();
+    const pdfH=pdf.internal.pageSize.getHeight();
+    const imgW=pdfW, imgH=(canvas.height*pdfW)/canvas.width;
+
+    let posY=0;
+    while(posY<imgH){
+      if(posY>0)pdf.addPage();
+      pdf.addImage(imgData,'PNG',0,-posY,imgW,imgH);
+      posY+=pdfH;
     }
 
-    // 우선 수정 항목
-    if(parsed.priorities?.length){
-      checkPage(20);
-      addLine();
-      doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(30,30,40);
-      doc.text('우선 수정 항목',M,y);y+=6;
-      parsed.priorities.forEach((p,i)=>{
-        checkPage(16);
-        const vc=verdictColor(p.verdict);
-        doc.setFillColor(...vc.map(c=>Math.min(c+190,255)));
-        doc.circle(M+3,y-0.5,2.5,'F');
-        doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
-        doc.text(String(i+1),M+3,y+0.5,{align:'center'});
-        doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(50,50,60);
-        const tl=doc.splitTextToSize(p.text,W-M*2-10);
-        checkPage(tl.length*4+4);
-        doc.text(tl,M+8,y);
-        y+=tl.length*4+5;
-      });
-    }
-
-    // 디렉터 코멘트
-    if(parsed.finalComment&&parsed.finalComment!=='전체적으로 양호한 시안입니다.'){
-      checkPage(20);
-      addLine();
-      doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(30,30,40);
-      doc.text('디렉터 코멘트',M,y);y+=6;
-      doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(80,80,100);
-      const fl=doc.splitTextToSize(parsed.finalComment,W-M*2);
-      checkPage(fl.length*4+4);
-      doc.text(fl,M,y);y+=fl.length*4;
-    }
-
-    // 저장
-    const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    const fileDateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
     const bannerName=($('bannerType').value||'검수결과').replace(/\s/g,'_');
-    doc.save(`검수리포트_${bannerName}_${dateStr}.pdf`);
+    pdf.save(`검수리포트_${bannerName}_${fileDateStr}.pdf`);
   }catch(e){
     alert('PDF 생성 오류: '+e.message);
+    console.error(e);
   }finally{
     btn.textContent='PDF 내보내기';btn.disabled=false;
   }
 }
 function resetView(){
-  parsed=null;lastText='';activeId=null;
+  parsed=null;lastText='';activeId=null;lastDebug=null;
   $('mkLayer').innerHTML='';
   $('cpList').innerHTML='<div class="cp-empty">검수 후 마커를 클릭하면<br>코멘트가 표시됩니다</div>';
   $('bottomPane').innerHTML='';
