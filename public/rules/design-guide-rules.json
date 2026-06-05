@@ -321,7 +321,33 @@
         "콘텐츠 정보와 무관한 이미지 사용 제외"
       ],
       "overlay": "/overlays/1920x900_safety_zone.png",
-      "overlayType": "zone"
+      "overlayType": "zone",
+      "zoneCoords": {
+        "subtitleZone": {
+          "x": 120,
+          "y": 290,
+          "w": 640,
+          "h": 36
+        },
+        "titleZone": {
+          "x": 120,
+          "y": 350,
+          "w": 480,
+          "h": 128
+        },
+        "buttonZone": {
+          "x": 120,
+          "y": 514,
+          "w": 190,
+          "h": 70
+        },
+        "mainImageZone": {
+          "x": 763,
+          "y": 200,
+          "w": 997,
+          "h": 500
+        }
+      }
     }
   },
   "categories": {
@@ -353,7 +379,33 @@
           "콘텐츠 정보와 무관한 이미지 사용 제외"
         ],
         "overlay": "/overlays/1920x900_safety_zone.png",
-        "overlayType": "zone"
+        "overlayType": "zone",
+        "zoneCoords": {
+          "subtitleZone": {
+            "x": 120,
+            "y": 290,
+            "w": 640,
+            "h": 36
+          },
+          "titleZone": {
+            "x": 120,
+            "y": 350,
+            "w": 480,
+            "h": 128
+          },
+          "buttonZone": {
+            "x": 120,
+            "y": 514,
+            "w": 190,
+            "h": 70
+          },
+          "mainImageZone": {
+            "x": 763,
+            "y": 200,
+            "w": 997,
+            "h": 500
+          }
+        }
       },
       "ICP 1단 배너": {
         "width": 1760,
