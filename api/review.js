@@ -108,13 +108,13 @@ All text in Korean.`;
       fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model, max_tokens: 2000, system: systemPrompt,
+        body: JSON.stringify({ model, max_tokens: 2000, temperature: 0.3, system: systemPrompt,
           messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt1 }] }] })
       }),
       fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model, max_tokens: 2000, system: systemPrompt,
+        body: JSON.stringify({ model, max_tokens: 2000, temperature: 0.3, system: systemPrompt,
           messages: [{ role: 'user', content: [imageContent, { type: 'text', text: prompt2 }] }] })
       })
     ]);
@@ -163,7 +163,7 @@ verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호. All text
       const rSafe = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model, max_tokens: 1000, system: systemPrompt,
+        body: JSON.stringify({ model, max_tokens: 1000, temperature: 0.3, system: systemPrompt,
           messages: [{ role: 'user', content: [
             { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
             { type: 'text', text: safeareaPrompt }
@@ -205,13 +205,13 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
         fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model, max_tokens: 300, system: systemPrompt,
+          body: JSON.stringify({ model, max_tokens: 300, temperature: 0.3, system: systemPrompt,
             messages: [{ role: 'user', content: [imageContent, { type: 'text', text: coordPrompt }] }] })
         }),
         fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model, max_tokens: 200, system: systemPrompt,
+          body: JSON.stringify({ model, max_tokens: 200, temperature: 0.3, system: systemPrompt,
             messages: [{ role: 'user', content: [
               { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
               { type: 'text', text: yesnoPrompt }
