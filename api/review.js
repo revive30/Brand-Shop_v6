@@ -176,7 +176,7 @@ severity values: critical, warning, info. All text in Korean.`;
 
 【무시할 것】배경 이미지, 그라데이션, 좌우 화살표(< >), 장식 요소, 하단 확인/닫기 버튼
 
-【핵심】텍스트나 핵심 요소가 빨간 띠에 조금이라도 닿으면 문제다. 타이틀이 화면 왼쪽에 바짝 붙어 있다면 빨간 띠에 닿은 것이다.
+【핵심】텍스트나 핵심 요소가 빨간 띠에 조금이라도 닿으면 문제다. 텍스트나 핵심 요소가 빨간 띠에 명확히 겹치거나 침범한 경우에만 문제로 판단한다. 경계에 가깝지만 안쪽에 있으면 양호로 판단한다.
 
 Return ONLY valid JSON:
 {"sections_pass3":[{"id":"safearea","title":"안전영역 준수","verdict":"양호","cause":null,"problem":"","reason":"","suggestion":"","markerIds":[]}]}
