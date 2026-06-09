@@ -134,22 +134,26 @@ severity values: critical, warning, info. All text in Korean.`;
       ? [{ ...p2.sections_pass2[0], id: 'finish', title: '시각적 완성도' }]
       : pass2Sections;
 
-    const normalizeMarkers = (markers) => (markers || []).map((m, i) => ({
-      ...m, id: parseInt(String(m.id).replace(/\D/g, '')) || (i + 1)
-    }));
+    // 마커 ID를 순서 기반으로 강제 재할당, 섹션 markerIds도 동기화
+    const normalizeMarkers = (markers, sections, startId) => {
+      const raw = markers || [];
+      const idMap = {};
+      const normalized = raw.map((m, i) => {
+        const newId = startId + i;
+        idMap[String(m.id)] = newId;
+        return { ...m, id: newId };
+      });
+      (sections || []).forEach(s => {
+        if (s.markerIds) s.markerIds = s.markerIds.map(old => idMap[String(old)] ?? old);
+      });
+      return normalized;
+    };
 
     const hasOverlay = overlayType === 'safearea' || overlayType === 'zone';
     const offset = hasOverlay ? 1 : 0;
 
-    const markers1 = normalizeMarkers(p1?.markers_pass1).map(m => ({ ...m, id: m.id + offset }));
-    const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length + offset }));
-
-    (p1?.sections_pass1 || []).forEach(s => {
-      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + offset);
-    });
-    pass2FallbackSection.forEach(s => {
-      if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length + offset);
-    });
+    const markers1 = normalizeMarkers(p1?.markers_pass1, p1?.sections_pass1, 1 + offset);
+    const markers2 = normalizeMarkers(p2?.markers_pass2, pass2FallbackSection, 1 + offset + markers1.length);
 
     const tvSection = (p1?.sections_pass1 || []).filter(s => s.id === 'tv');
     const mainSections = (p1?.sections_pass1 || []).filter(s => s.id !== 'tv');
@@ -203,20 +207,20 @@ Return ONLY valid JSON: {"logo":{"x":0,"y":0,"w":0,"h":0},"title":{"x":0,"y":0,"
         const elTop = el.y, elBottom = el.y + el.h;
         if (elLeft < SAFE.left || elRight > SAFE.right || elTop < SAFE.top || elBottom > SAFE.bottom) {
           const sides = [];
-          if (elLeft < SAFE.left) sides.push(`좌측(${SAFE.left - elLeft}px 초과)`);
-          if (elRight > SAFE.right) sides.push(`우측(${elRight - SAFE.right}px 초과)`);
-          if (elTop < SAFE.top) sides.push(`상단(${SAFE.top - elTop}px 초과)`);
-          if (elBottom > SAFE.bottom) sides.push(`하단(${elBottom - SAFE.bottom}px 초과)`);
+          if (elLeft < SAFE.left) sides.push('좌측');
+          if (elRight > SAFE.right) sides.push('우측');
+          if (elTop < SAFE.top) sides.push('상단');
+          if (elBottom > SAFE.bottom) sides.push('하단');
           violations.push({ label, sides });
         }
       }
 
       const isViolation = violations.length > 0;
       const problemText = isViolation
-        ? violations.map(v => `${v.label}이(가) 안전영역을 ${v.sides.join(', ')} 벗어났습니다.`).join(' ')
+        ? violations.map(v => `${v.label}이(가) ${v.sides.join(', ')} 안전영역 경계에 근접하거나 벗어날 수 있습니다.`).join(' ')
         : '';
       const suggestionText = isViolation
-        ? `안전영역 기준(좌우 ${SAFE.left}px, 상하 ${SAFE.top}px 이상 여백)을 확보해주세요.`
+        ? `안전영역 안쪽으로 여유 있게 배치해주세요. 특히 ${violations.map(v=>v.label).join(', ')}의 ${[...new Set(violations.flatMap(v=>v.sides))].join('/')} 여백을 확보하세요.`
         : '';
 
       allMarkers.unshift({
@@ -232,8 +236,8 @@ Return ONLY valid JSON: {"logo":{"x":0,"y":0,"w":0,"h":0},"title":{"x":0,"y":0,"
         cause: isViolation ? '안전영역 이탈' : null,
         problem: problemText,
         reason: isViolation
-          ? `안전영역(좌 ${SAFE.left}px, 우 ${SAFE.right}px, 상 ${SAFE.top}px, 하 ${SAFE.bottom}px) 기준으로 좌표를 직접 비교했습니다.`
-          : `안전영역(좌 ${SAFE.left}px, 우 ${SAFE.right}px, 상 ${SAFE.top}px, 하 ${SAFE.bottom}px) 안에 모든 핵심 요소가 배치되어 있습니다.`,
+          ? '핵심 요소의 좌표를 안전영역 기준과 비교했습니다.'
+          : '핵심 요소가 모두 안전영역 안에 배치되어 있습니다.',
         suggestion: suggestionText,
         markerIds: [1]
       });
