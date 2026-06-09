@@ -479,20 +479,25 @@ async function startReview(){
   try{
     const b64=await f2b64(file);
 
-    // 오버레이 합성 — JPEG 0.7로 저장해서 용량 최소화
+    // 오버레이 합성 — 1280px 리사이즈 후 JPEG 0.92 (해상도/용량 균형)
     let overlayBase64 = null;
     const ovImg = $('overlayImg');
     if(ovImg && ovImg.dataset.overlayPath){
       try {
+        const MAX_W = 1280;
+        const scale = Math.min(1, MAX_W / imgInfo.w);
+        const cw = Math.round(imgInfo.w * scale);
+        const ch = Math.round(imgInfo.h * scale);
+
         const canvas = document.createElement('canvas');
-        canvas.width = imgInfo.w;
-        canvas.height = imgInfo.h;
+        canvas.width = cw;
+        canvas.height = ch;
         const ctx = canvas.getContext('2d');
 
         const sianImage = new Image();
         const sianUrl = URL.createObjectURL(file);
         await new Promise((res,rej)=>{sianImage.onload=res;sianImage.onerror=rej;sianImage.src=sianUrl;});
-        ctx.drawImage(sianImage, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(sianImage, 0, 0, cw, ch);
         URL.revokeObjectURL(sianUrl);
 
         const ovResp = await fetch(ovImg.dataset.overlayPath);
@@ -501,12 +506,11 @@ async function startReview(){
         const ovImage = new Image();
         await new Promise((res,rej)=>{ovImage.onload=res;ovImage.onerror=rej;ovImage.src=ovUrl;});
         ctx.globalAlpha = 0.65;
-        ctx.drawImage(ovImage, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(ovImage, 0, 0, cw, ch);
         ctx.globalAlpha = 1.0;
         URL.revokeObjectURL(ovUrl);
 
-        // PNG → JPEG 0.7로 변경해서 용량 절감
-        overlayBase64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+        overlayBase64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
       } catch(e) { console.warn('overlay merge failed', e); }
     }
 
@@ -566,14 +570,12 @@ async function exportPDF(){
   const btn=$('pdfBtn');
   btn.textContent='생성 중...';btn.disabled=true;
   try{
-    // html2canvas + jsPDF 동적 로드
     await Promise.all([
       new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);}),
       new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);})
     ]);
     const {jsPDF}=window.jspdf;
 
-    // PDF용 임시 컨테이너 생성
     const container=document.createElement('div');
     const now=new Date();
     const dateStr=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
@@ -592,7 +594,6 @@ async function exportPDF(){
 
     container.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:#fff;padding:40px;font-family:Pretendard,-apple-system,sans-serif;font-size:13px;color:#1a1a24;line-height:1.6;';
 
-    // 시안 이미지에 마커 그리기
     let markerImgSrc = '';
     const canvasImg=$('canvasImg');
     if(canvasImg.src && canvasImg.naturalWidth>0 && parsed.markers?.length){
@@ -664,7 +665,6 @@ ${secName?`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:2
       </div>`:'';
     const bannerTypeText = $('bannerType').value || '';
 
-    // 마커 코멘트 HTML
     const markersHtml = (parsed.markers||[]).length ? `
       <div style="margin-bottom:16px;border:1px solid #e8e8f0;border-radius:8px;overflow:hidden;">
         <div style="display:flex;align-items:center;padding:10px 14px;background:#f5f5f8;">
