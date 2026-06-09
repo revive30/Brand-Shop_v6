@@ -384,7 +384,7 @@ function renderCpList(markers){
   list.innerHTML=markers.map(m=>`
     <div class="cp-item" id="cp-${m.id}" onclick="activateMk(${m.id})">
       <div class="cp-item-head"><span class="cp-badge cb-${m.severity}">${m.id}</span><span class="cp-label">${m.label}</span></div>
-      <div class="cp-text">${m.comment}</div>
+      <div class="cp-text">${m.comment||m.label||''}</div>
     </div>`).join('');
 }
 function activateMk(id){
@@ -433,11 +433,6 @@ function renderBottom(p){
     return `<div class="prio-item"><span class="prio-num ${pncls}">${i+1}</span><span>${t}</span></div>`;
   }).join('');
   const _html=`
-    <div class="bottom-cards" style="padding:20px 24px 0">
-      <div class="b-card" style="grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:14px 18px;">
-        <div class="v-pill ${vcls}"><div class="v-dot"></div><span class="v-text">${p.verdict}</span></div>
-      </div>
-    </div>
     <div class="bottom-cards">
       <div class="b-card"><div class="b-card-title">우선 수정 항목</div>${prios||'<div style="display:flex;align-items:center;gap:8px;padding:12px 0;font-size:13px;color:var(--green)"><span style="font-size:16px">✓</span> 수정이 필요한 항목이 없습니다</div>'}</div>
       ${p.finalComment?`<div class="b-card"><div class="b-card-title">디렉터 코멘트</div><div class="final-text">${p.finalComment}</div></div>`:'<div></div>'}
