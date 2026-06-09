@@ -657,12 +657,8 @@ ${secName?`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:2
         </div>
         <div style="padding:10px 14px;font-size:12px;color:#555;line-height:1.7;">${parsed.finalComment}</div>
       </div>`:'';
-    const vColor = verdictColor(parsed.verdict);
-    const vBg = verdictBg(parsed.verdict);
-    const vText = parsed.verdict || '';
     const bannerTypeText = $('bannerType').value || '';
 
-    // 종합 판정 뱃지
     // 마커 코멘트 HTML
     const markersHtml = (parsed.markers||[]).length ? `
       <div style="margin-bottom:16px;border:1px solid #e8e8f0;border-radius:8px;overflow:hidden;">
@@ -672,9 +668,8 @@ ${secName?`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:2
         <div style="padding:10px 14px;">
         ${(parsed.markers||[]).map(m=>{
           const sColor = m.severity==='critical'?'#ff4f4f':m.severity==='warning'?'#ffaa00':'#0064ff';
-          const sBg = m.severity==='critical'?'rgba(255,79,79,.1)':m.severity==='warning'?'rgba(255,170,0,.1)':'rgba(0,100,255,.1)';
           return `<div style="display:flex;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f0f0f0;align-items:flex-start;">
-<span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${sColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;">${m.id}</span>
+<span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${sColor};display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;">${m.id}</span>
 <div>
 <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:2px;">${m.label||''}</div>
 <div style="font-size:12px;color:#555;line-height:1.6;">${m.comment||''}</div>
@@ -690,10 +685,6 @@ ${secName?`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:2
         <div style="font-size:12px;color:#9494a4;">${dateStr} &nbsp;·&nbsp; ${bannerTypeText}</div>
       </div>
       ${imgHtml}
-      <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;background:${vBg};border:1px solid ${vColor};margin-bottom:16px;">
-        <span style="width:7px;height:7px;border-radius:50%;background:${vColor};flex-shrink:0;display:inline-block;"></span>
-        <span style="font-weight:800;font-size:13px;color:${vColor};">${vText}</span>
-      </div>
       ${markersHtml}
       ${prioritiesHtml}
       ${commentHtml}
