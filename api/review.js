@@ -129,25 +129,21 @@ severity values: critical, warning, info. All text in Korean.`;
     const p1 = parseJSON(data1);
     const p2 = parseJSON(data2);
 
-    // pass2에서 finish 외 섹션 제거 (AI가 여러 섹션으로 쪼갤 경우 대비)
     const pass2Sections = (p2?.sections_pass2 || []).filter(s => s.id === 'finish');
     const pass2FallbackSection = pass2Sections.length === 0 && (p2?.sections_pass2 || []).length > 0
       ? [{ ...p2.sections_pass2[0], id: 'finish', title: '시각적 완성도' }]
       : pass2Sections;
 
-    // 마커 정규화
     const normalizeMarkers = (markers) => (markers || []).map((m, i) => ({
       ...m, id: parseInt(String(m.id).replace(/\D/g, '')) || (i + 1)
     }));
 
-    // 영역배치/안전영역 마커를 1번으로 고정, 나머지 2번부터
-    const hasOverlay = overlayBase64 && (overlayType === 'safearea' || overlayType === 'zone');
+    const hasOverlay = overlayType === 'safearea' || overlayType === 'zone';
     const offset = hasOverlay ? 1 : 0;
 
     const markers1 = normalizeMarkers(p1?.markers_pass1).map(m => ({ ...m, id: m.id + offset }));
     const markers2 = normalizeMarkers(p2?.markers_pass2).map(m => ({ ...m, id: m.id + markers1.length + offset }));
 
-    // sections markerIds offset 적용
     (p1?.sections_pass1 || []).forEach(s => {
       if (s.markerIds) s.markerIds = s.markerIds.map(id => id + offset);
     });
@@ -155,55 +151,92 @@ severity values: critical, warning, info. All text in Korean.`;
       if (s.markerIds) s.markerIds = s.markerIds.map(id => id + markers1.length + offset);
     });
 
-    // TV 섹션을 맨 뒤로
     const tvSection = (p1?.sections_pass1 || []).filter(s => s.id === 'tv');
     const mainSections = (p1?.sections_pass1 || []).filter(s => s.id !== 'tv');
     const allSections = [...mainSections, ...pass2FallbackSection, ...tvSection];
     const allMarkers = [...markers1, ...markers2];
 
-    // ===== safearea 타입: 합성 이미지로 AI 판단 =====
-    if (overlayBase64 && overlayType === 'safearea') {
-      const safeareaPrompt = `이 이미지는 TV 배너 시안 위에 안전영역 가이드를 빨간색으로 합성한 것입니다.
+    // ===== safearea 타입: 좌표 기반 판정 (AI 시각 판단 제거) =====
+    if (overlayType === 'safearea') {
+      const imgW = specCheck?.actual?.width || 1920;
+      const imgH = specCheck?.actual?.height || 1080;
 
-【이미지 해석】
-- 이미지 가장자리를 둘러싼 빨간색 띠 = 안전영역 바깥 (위험 구역)
-- 빨간 띠 안쪽 검정/어두운 영역 = 안전영역 (안전 구역)
+      // 안전영역 경계 (1920x1080 기준 픽셀, PNG에서 추출한 값)
+      // 다른 해상도면 비율로 환산
+      const SAFE = {
+        left:   Math.round(80  * imgW / 1920),
+        right:  Math.round(1839 * imgW / 1920),
+        top:    Math.round(61  * imgH / 1080),
+        bottom: Math.round(1019 * imgH / 1080),
+      };
 
-【판단 순서】
-1. 메인 타이틀(가장 큰 글자)의 가장 왼쪽/오른쪽/상단/하단이 빨간 띠에 닿거나 겹치는지 확인
-2. 본문 텍스트, 불릿 항목들의 가장자리가 빨간 띠에 닿는지 확인
-3. QR코드, 로고, 핵심 비주얼이 빨간 띠에 닿는지 확인
+      const coordPrompt = `This is a TV banner image (${imgW}x${imgH}px). x=0 is left edge, y=0 is top edge.
 
-【무시할 것】배경 이미지, 그라데이션, 좌우 화살표(< >), 장식 요소, 하단 확인/닫기 버튼
+Find the bounding box (x, y, w, h) in pixels for each of these elements:
+1. "logo" — brand logo or service logo text (top-left area)
+2. "title" — main headline text (largest text)
+3. "body" — body text block (bullet items, description text)
+4. "cta" — CTA button if present
 
-【핵심】텍스트나 핵심 요소가 빨간 띠에 조금이라도 닿으면 문제다. 타이틀이 화면 왼쪽에 바짝 붙어 있다면 빨간 띠에 닿은 것이다.
+IGNORE: background images, decorative elements, navigation arrows (< >), confirm/close buttons at bottom, QR codes, GNB bar at top.
 
-Return ONLY valid JSON:
-{"sections_pass3":[{"id":"safearea","title":"안전영역 준수","verdict":"양호","cause":null,"problem":"","reason":"","suggestion":"","markerIds":[]}]}
-verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호. All text in Korean.`;
+If an element is NOT present, set x to -1.
+Return ONLY valid JSON: {"logo":{"x":0,"y":0,"w":0,"h":0},"title":{"x":0,"y":0,"w":0,"h":0},"body":{"x":0,"y":0,"w":0,"h":0},"cta":{"x":0,"y":0,"w":0,"h":0}}`;
 
-      const rSafe = await fetch('https://api.anthropic.com/v1/messages', {
+      const rCoord = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model, max_tokens: 1000, system: systemPrompt,
-          messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: overlayBase64 } },
-            { type: 'text', text: safeareaPrompt }
-          ]}] })
+        body: JSON.stringify({ model, max_tokens: 300, system: systemPrompt,
+          messages: [{ role: 'user', content: [imageContent, { type: 'text', text: coordPrompt }] }] })
       });
-      const dSafe = await rSafe.json();
-      const p3 = parseJSON(dSafe);
-      if (p3?.sections_pass3?.length) {
-        const safeVerdict = p3.sections_pass3[0]?.verdict;
-        const isViolation = safeVerdict && safeVerdict !== '양호';
-        if (isViolation) p3.sections_pass3[0].verdict = '치명 리스크';
-        // 마커 1번 고정 — 좌측 상단 안전영역 경계 근처
-        allMarkers.unshift({ id: 1, col: 2, row: 2,
-          severity: isViolation ? 'critical' : 'info', label: '안전영역',
-          comment: p3.sections_pass3[0]?.problem || '안전영역을 확인하세요' });
-        p3.sections_pass3.forEach(s => { s.markerIds = [1]; });
-        allSections.push(...p3.sections_pass3);
+      const dCoord = await rCoord.json();
+      const coords = parseJSON(dCoord);
+      console.log('[safearea] coords:', JSON.stringify(coords), '| SAFE:', JSON.stringify(SAFE));
+
+      // 각 요소가 안전영역을 벗어나는지 체크
+      const violations = [];
+      const labelMap = { logo: '로고', title: '메인 타이틀', body: '본문 텍스트', cta: 'CTA 버튼' };
+      for (const [key, label] of Object.entries(labelMap)) {
+        const el = coords?.[key];
+        if (!el || el.x < 0) continue;
+        const elLeft = el.x, elRight = el.x + el.w;
+        const elTop = el.y, elBottom = el.y + el.h;
+        if (elLeft < SAFE.left || elRight > SAFE.right || elTop < SAFE.top || elBottom > SAFE.bottom) {
+          const sides = [];
+          if (elLeft < SAFE.left) sides.push(`좌측(${SAFE.left - elLeft}px 초과)`);
+          if (elRight > SAFE.right) sides.push(`우측(${elRight - SAFE.right}px 초과)`);
+          if (elTop < SAFE.top) sides.push(`상단(${SAFE.top - elTop}px 초과)`);
+          if (elBottom > SAFE.bottom) sides.push(`하단(${elBottom - SAFE.bottom}px 초과)`);
+          violations.push({ label, sides });
+        }
       }
+
+      const isViolation = violations.length > 0;
+      const problemText = isViolation
+        ? violations.map(v => `${v.label}이(가) 안전영역을 ${v.sides.join(', ')} 벗어났습니다.`).join(' ')
+        : '';
+      const suggestionText = isViolation
+        ? `안전영역 기준(좌우 ${SAFE.left}px, 상하 ${SAFE.top}px 이상 여백)을 확보해주세요.`
+        : '';
+
+      allMarkers.unshift({
+        id: 1, col: 2, row: 2,
+        severity: isViolation ? 'critical' : 'info',
+        label: '안전영역',
+        comment: isViolation ? problemText : '모든 핵심 요소가 안전영역 안에 있습니다.'
+      });
+
+      allSections.push({
+        id: 'safearea', title: '안전영역 준수',
+        verdict: isViolation ? '치명 리스크' : '양호',
+        cause: isViolation ? '안전영역 이탈' : null,
+        problem: problemText,
+        reason: isViolation
+          ? `안전영역(좌 ${SAFE.left}px, 우 ${SAFE.right}px, 상 ${SAFE.top}px, 하 ${SAFE.bottom}px) 기준으로 좌표를 직접 비교했습니다.`
+          : `안전영역(좌 ${SAFE.left}px, 우 ${SAFE.right}px, 상 ${SAFE.top}px, 하 ${SAFE.bottom}px) 안에 모든 핵심 요소가 배치되어 있습니다.`,
+        suggestion: suggestionText,
+        markerIds: [1]
+      });
     }
 
     // ===== zone 타입: 좌표 + 시각 판단 병렬 =====
@@ -296,7 +329,6 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
         suggestionText = problemText;
       }
 
-      // 영역배치 마커도 1번 고정
       allMarkers.unshift({ id: 1, col: 2, row: 5, severity: markerSeverity, label: '영역 배치',
         comment: hasAnyIssue ? problemText : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.' });
 
@@ -305,13 +337,13 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
         cause: hasAnyIssue ? '콘텐츠 영역 이탈' : null,
         problem: hasAnyIssue ? problemText : '',
         reason: hasAnyIssue ? '좌표 비교 및 시각 확인 두 방식으로 검증.' : '모든 콘텐츠가 지정 영역 안에 배치되어 있습니다.',
-        suggestion: suggestionText, markerIds: hasAnyIssue ? [1] : [1]
+        suggestion: suggestionText, markerIds: [1]
       });
 
       console.log('[zone] critical:', critical, 'caution:', caution);
     }
 
-    // 마커 ID 재정렬 (1번 고정 후 중복 방지)
+    // 마커 ID 재정렬
     const seenIds = new Set();
     let nextId = 2;
     const finalMarkers = allMarkers.map(m => {
@@ -319,7 +351,6 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
       while (seenIds.has(nextId)) nextId++;
       const newId = nextId++;
       seenIds.add(newId);
-      // sections의 markerIds도 업데이트
       allSections.forEach(s => {
         if (s.markerIds) s.markerIds = s.markerIds.map(id => id === m.id ? newId : id);
       });
@@ -330,14 +361,12 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
     const worstVerdict = allSections.reduce((worst, s) =>
       (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst, '양호');
 
-    // 우선수정항목 — safearea 포함, 양호 제외
     const priorities = allSections
       .filter(s => s.verdict !== '양호' && s.problem)
       .sort((a,b) => (verdictPriority[b.verdict]||0) - (verdictPriority[a.verdict]||0))
       .slice(0, 3)
       .map(s => ({ text: s.problem, verdict: s.verdict }));
 
-    // 디렉터 코멘트 — AI가 모든 섹션 결과를 보고 직접 작성
     let finalComment = '전체적으로 양호한 시안입니다.';
     const problemSections = allSections.filter(s => s.verdict !== '양호' && s.problem);
     if (problemSections.length > 0) {
