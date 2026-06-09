@@ -176,7 +176,7 @@ severity values: critical, warning, info. All text in Korean.`;
 
 【무시할 것】배경 이미지, 그라데이션, 좌우 화살표(< >), 장식 요소, 하단 확인/닫기 버튼
 
-【핵심】텍스트나 핵심 요소가 빨간 띠에 조금이라도 닿으면 문제다. 텍스트나 핵심 요소가 빨간 띠에 명확히 겹치거나 침범한 경우에만 문제로 판단한다. 경계에 가깝지만 안쪽에 있으면 양호로 판단한다.
+【핵심】텍스트나 핵심 요소가 빨간 띠에 조금이라도 닿으면 문제다. 타이틀이 화면 왼쪽에 바짝 붙어 있다면 빨간 띠에 닿은 것이다.
 
 Return ONLY valid JSON:
 {"sections_pass3":[{"id":"safearea","title":"안전영역 준수","verdict":"양호","cause":null,"problem":"","reason":"","suggestion":"","markerIds":[]}]}
@@ -330,17 +330,44 @@ Return ONLY valid JSON: {"subtitle":"YES","title":"YES","button":"YES","mainImag
     const worstVerdict = allSections.reduce((worst, s) =>
       (verdictPriority[s.verdict] || 0) > (verdictPriority[worst] || 0) ? s.verdict : worst, '양호');
 
-    // 우선수정항목에서 안전영역/영역배치 제외
+    // 우선수정항목 — safearea 포함, 양호 제외
     const priorities = allSections
-      .filter(s => s.verdict !== '양호' && s.problem && s.id !== 'safearea')
+      .filter(s => s.verdict !== '양호' && s.problem)
       .sort((a,b) => (verdictPriority[b.verdict]||0) - (verdictPriority[a.verdict]||0))
       .slice(0, 3)
       .map(s => ({ text: s.problem, verdict: s.verdict }));
 
-    const problemSections = allSections.filter(s => s.verdict !== '양호' && s.suggestion && s.id !== 'safearea');
-    const finalComment = problemSections.length > 0
-      ? problemSections.map(s => s.suggestion).join(' ')
-      : '전체적으로 양호한 시안입니다.';
+    // 디렉터 코멘트 — AI가 모든 섹션 결과를 보고 직접 작성
+    let finalComment = '전체적으로 양호한 시안입니다.';
+    const problemSections = allSections.filter(s => s.verdict !== '양호' && s.problem);
+    if (problemSections.length > 0) {
+      const summaryPrompt = `당신은 TV 배너 디자인 디렉터입니다. 아래는 디자인 검수 결과입니다.
+
+${problemSections.map(s => `[${s.title} — ${s.verdict}] ${s.problem}`).join('\n')}
+
+위 검수 결과를 바탕으로 디자이너에게 전달할 디렉터 코멘트를 한국어로 2~3문장으로 작성하세요.
+- 가장 중요한 수정 사항을 먼저 언급하세요
+- 구체적이고 실행 가능한 조언을 담으세요
+- "전체적으로", "대체로" 같은 막연한 표현 대신 구체적으로 쓰세요
+- JSON이나 마크다운 없이 순수 텍스트만 반환하세요`;
+
+      try {
+        const rComment = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({
+            model, max_tokens: 300, system: '당신은 TV 배너 디자인 디렉터입니다. 요청한 텍스트만 반환하세요.',
+            messages: [{ role: 'user', content: summaryPrompt }]
+          })
+        });
+        const dComment = await rComment.json();
+        const commentText = (dComment?.content || []).map(c => c.text || '').join('').trim();
+        if (commentText) finalComment = commentText;
+      } catch(e) {
+        console.warn('director comment generation failed:', e.message);
+        finalComment = problemSections.map(s => s.suggestion).filter(Boolean).join(' ');
+      }
+    }
 
     const parsed = { verdict: worstVerdict, markers: finalMarkers, sections: allSections, priorities, finalComment };
     console.log('[review] sections:', allSections.length, '| markers:', finalMarkers.length);
