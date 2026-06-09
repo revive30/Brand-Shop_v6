@@ -197,8 +197,8 @@ verdict values: 치명 리스크, 수정 권장, 검토 필요, 양호. All text
         const safeVerdict = p3.sections_pass3[0]?.verdict;
         const isViolation = safeVerdict && safeVerdict !== '양호';
         if (isViolation) p3.sections_pass3[0].verdict = '치명 리스크';
-        // 마커 1번 고정
-        allMarkers.unshift({ id: 1, col: 1, row: 1,
+        // 마커 1번 고정 — 좌측 상단 안전영역 경계 근처
+        allMarkers.unshift({ id: 1, col: 2, row: 2,
           severity: isViolation ? 'critical' : 'info', label: '안전영역',
           comment: p3.sections_pass3[0]?.problem || '안전영역을 확인하세요' });
         p3.sections_pass3.forEach(s => { s.markerIds = [1]; });
@@ -356,7 +356,7 @@ ${problemSections.map(s => `[${s.title} — ${s.verdict}] ${s.problem}`).join('\
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
           body: JSON.stringify({
-            model, max_tokens: 300, system: '당신은 TV 배너 디자인 디렉터입니다. 요청한 텍스트만 반환하세요.',
+            model, max_tokens: 600, system: '당신은 TV 배너 디자인 디렉터입니다. 요청한 텍스트만 반환하세요.',
             messages: [{ role: 'user', content: summaryPrompt }]
           })
         });
